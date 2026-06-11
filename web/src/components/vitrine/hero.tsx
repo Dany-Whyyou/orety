@@ -104,8 +104,8 @@ export function VitrineHero() {
 
         <Stagger className="mx-auto mt-24 grid max-w-4xl gap-4 sm:grid-cols-3" delay={0.15}>
           {stats.map((stat, i) => (
-            <StaggerItem key={i}>
-              <div className="gradient-border flex items-center gap-4 rounded-2xl p-5 shadow-sm transition-transform duration-300 hover:-translate-y-1">
+            <StaggerItem key={i} className="h-full">
+              <div className="gradient-border flex h-full items-center gap-4 rounded-2xl p-5 shadow-sm transition-transform duration-300 hover:-translate-y-1">
                 <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary">
                   <stat.icon className="size-5" />
                 </div>

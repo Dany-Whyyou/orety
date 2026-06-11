@@ -44,7 +44,8 @@ const Schema = z.object({
     .transform((v) => (v === "" || v === null ? null : Number(v)))
     .nullable(),
 });
-type FormValues = z.infer<typeof Schema>;
+type FormInput = z.input<typeof Schema>;
+type FormValues = z.output<typeof Schema>;
 
 type Type = {
   id: string;
@@ -104,7 +105,7 @@ export function EvaluationDialog({
   const isEdit = !!evaluation;
   const [submitting, setSubmitting] = React.useState(false);
 
-  const form = useForm<FormValues>({
+  const form = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(Schema),
     defaultValues: {
       affectation_id: "",

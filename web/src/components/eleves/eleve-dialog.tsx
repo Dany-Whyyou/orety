@@ -43,7 +43,7 @@ const BaseSchema = z.object({
   prenom: z.string().min(1, "Prénom requis"),
   date_naissance: z.string().optional().or(z.literal("")),
   lieu_naissance: z.string().optional().or(z.literal("")),
-  sexe: z.enum(["m", "f", "autre"]).nullable().optional(),
+  sexe: z.enum(["m", "f"]).nullable().optional(),
   nationalite: z.string().optional().or(z.literal("")),
   adresse: z.string().optional().or(z.literal("")),
   tel_urgence: z.string().optional().or(z.literal("")),
@@ -162,7 +162,7 @@ export function EleveDialog({
           prenom: eleve.prenom,
           date_naissance: eleve.date_naissance ?? "",
           lieu_naissance: eleve.lieu_naissance ?? "",
-          sexe: (eleve.sexe as "m" | "f" | "autre" | null) ?? null,
+          sexe: eleve.sexe ? (eleve.sexe.toLowerCase() as "m" | "f") : null,
           nationalite: eleve.nationalite ?? "",
           adresse: eleve.adresse ?? "",
           tel_urgence: eleve.tel_urgence ?? "",
@@ -297,7 +297,7 @@ export function EleveDialog({
                 <Select
                   value={form.watch("sexe") ?? "none"}
                   onValueChange={(v) =>
-                    form.setValue("sexe", v === "none" ? null : (v as "m" | "f" | "autre"))
+                    form.setValue("sexe", v === "none" ? null : (v as "m" | "f"))
                   }
                 >
                   <SelectTrigger>
@@ -307,7 +307,6 @@ export function EleveDialog({
                     <SelectItem value="none">—</SelectItem>
                     <SelectItem value="f">Féminin</SelectItem>
                     <SelectItem value="m">Masculin</SelectItem>
-                    <SelectItem value="autre">Autre</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

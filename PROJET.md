@@ -38,7 +38,7 @@ Site vitrine + admin = **une seule app Next.js** partageant la même base (route
 
 ### Web
 - **Next.js** (App Router, TypeScript)
-- Déploiement : **Cloudflare Pages** via `@cloudflare/next-on-pages` (runtime Edge)
+- Déploiement : **Cloudflare Workers** via `@opennextjs/cloudflare` (runtime Node.js — next-on-pages/Pages déprécié pour Next.js)
 - UI : shadcn/ui + Tailwind (à confirmer selon charte fournie)
 - Graphiques : recharts
 - Validation : zod

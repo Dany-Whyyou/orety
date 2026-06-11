@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-export async function proxy(request: NextRequest) {
+// Convention `middleware` (edge) conservée au lieu de `proxy` (Node only) :
+// @opennextjs/cloudflare ne supporte pas le proxy Node de Next 16.
+export async function middleware(request: NextRequest) {
   return updateSession(request);
 }
 

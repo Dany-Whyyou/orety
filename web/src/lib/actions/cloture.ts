@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 import { getCurrentUser } from "@/lib/auth";
 import { getClotureState, getProchaineAnnee, type DecisionFinAnnee } from "@/lib/queries/cloture";
 
@@ -27,7 +28,10 @@ async function requireAdmin() {
   return user;
 }
 
-const STATUT_FROM_DECISION: Record<DecisionFinAnnee, string> = {
+const STATUT_FROM_DECISION: Record<
+  DecisionFinAnnee,
+  Database["public"]["Enums"]["statut_inscription"]
+> = {
   admis: "admis",
   redouble: "redouble",
   diplome: "diplome",

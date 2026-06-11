@@ -2031,6 +2031,7 @@ export type Database = {
         | "activite"
         | "message"
         | "systeme"
+        | "incident"
       type_observation:
         | "comportement"
         | "academique"
@@ -2211,6 +2212,7 @@ export const Constants = {
         "activite",
         "message",
         "systeme",
+        "incident",
       ],
       type_observation: [
         "comportement",

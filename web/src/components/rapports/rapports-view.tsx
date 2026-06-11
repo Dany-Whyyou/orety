@@ -228,8 +228,8 @@ export function RapportsView({ data }: Props) {
                           borderRadius: "0.75rem",
                           fontSize: "12px",
                         }}
-                        formatter={(value: unknown) =>
-                          typeof value === "number" ? value.toFixed(2) : value
+                        formatter={(value) =>
+                          typeof value === "number" ? value.toFixed(2) : String(value ?? "")
                         }
                       />
                       <Bar dataKey="moyenne" radius={[0, 4, 4, 0]}>

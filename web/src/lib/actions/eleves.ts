@@ -6,7 +6,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth";
 import { generateParentPseudo, createParent } from "@/lib/actions/parents";
 
-const SEXES = ["m", "f", "autre"] as const;
+const SEXES = ["m", "f"] as const;
+
+// L'enum Postgres sexe_eleve n'accepte que 'M' | 'F'
+function toDbSexe(sexe: (typeof SEXES)[number] | null | undefined) {
+  return sexe ? (sexe.toUpperCase() as "M" | "F") : null;
+}
 
 const eleveSchema = z.object({
   etablissement_id: z.string().uuid(),
@@ -123,7 +128,7 @@ export async function createEleve(raw: unknown): Promise<EleveActionResult> {
         prenom: input.prenom,
         date_naissance: input.date_naissance || null,
         lieu_naissance: input.lieu_naissance || null,
-        sexe: input.sexe || null,
+        sexe: toDbSexe(input.sexe),
         nationalite: input.nationalite || null,
         adresse: input.adresse || null,
         tel_urgence: input.tel_urgence || null,
@@ -184,7 +189,7 @@ export async function updateEleve(id: string, raw: unknown): Promise<EleveAction
         prenom: input.prenom,
         date_naissance: input.date_naissance || null,
         lieu_naissance: input.lieu_naissance || null,
-        sexe: input.sexe || null,
+        sexe: toDbSexe(input.sexe),
         nationalite: input.nationalite || null,
         adresse: input.adresse || null,
         tel_urgence: input.tel_urgence || null,

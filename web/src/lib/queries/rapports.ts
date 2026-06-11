@@ -40,7 +40,7 @@ export async function getRapportData(): Promise<RapportData> {
     supabase.from("classes").select("*", { count: "exact", head: true }),
     supabase.from("evaluations").select("*", { count: "exact", head: true }),
     supabase.from("bulletins").select("*", { count: "exact", head: true }),
-    supabase.from("notes").select("note, bareme, bonus, absent").limit(2000),
+    supabase.from("notes").select("note, bonus, absent, evaluations(bareme)").limit(2000),
     supabase.from("presences").select("statut").limit(5000),
     supabase
       .from("eleves")
@@ -64,11 +64,11 @@ export async function getRapportData(): Promise<RapportData> {
   if (notes && notes.length > 0) {
     const valid = notes.filter((n) => !n.absent && n.note !== null);
     if (valid.length > 0) {
-      const sum = valid.reduce(
-        (acc, n) =>
-          acc + ((Number(n.note) + Number(n.bonus ?? 0)) / Number(n.bareme)) * 20,
-        0
-      );
+      const sum = valid.reduce((acc, n) => {
+        const evaluation = Array.isArray(n.evaluations) ? n.evaluations[0] : n.evaluations;
+        const bareme = Number(evaluation?.bareme) || 20;
+        return acc + ((Number(n.note) + Number(n.bonus ?? 0)) / bareme) * 20;
+      }, 0);
       moyenneGenerale = sum / valid.length;
     }
   }

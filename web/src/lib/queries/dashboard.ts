@@ -37,7 +37,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .eq("active", true)
       .limit(1)
       .maybeSingle(),
-    supabase.from("notes").select("note, bareme, bonus").limit(1000),
+    supabase.from("notes").select("note, bonus, evaluations(bareme)").limit(1000),
     supabase.from("presences").select("statut").limit(2000),
     supabase
       .from("eleves")
@@ -49,7 +49,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   let moyenne: number | null = null;
   if (notesData && notesData.length > 0) {
     const sum = notesData.reduce((acc, n) => {
-      const bareme = Number(n.bareme) || 20;
+      const evaluation = Array.isArray(n.evaluations) ? n.evaluations[0] : n.evaluations;
+      const bareme = Number(evaluation?.bareme) || 20;
       const note = Number(n.note) || 0;
       const bonus = Number(n.bonus) || 0;
       return acc + ((note + bonus) / bareme) * 20;

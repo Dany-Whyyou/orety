@@ -54,7 +54,8 @@ const Schema = z.object({
   action_prise: z.string().optional().or(z.literal("")),
   notifie_parent: z.boolean(),
 });
-type FormValues = z.infer<typeof Schema>;
+type FormInput = z.input<typeof Schema>;
+type FormValues = z.output<typeof Schema>;
 
 const TYPES: { value: FormValues["type"]; label: string; icon: React.ComponentType<{ className?: string }>; color: string }[] = [
   { value: "sante", label: "Santé", icon: Heart, color: "text-rose-500" },
@@ -95,7 +96,7 @@ export function IncidentDialog({ open, onOpenChange, incident, eleves, defaultEl
   const [eleveSearch, setEleveSearch] = React.useState("");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const form = useForm<FormValues>({
+  const form = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(Schema),
     defaultValues: {
       eleve_id: defaultEleveId ?? "",

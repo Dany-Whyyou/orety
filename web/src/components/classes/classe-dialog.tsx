@@ -39,7 +39,8 @@ const Schema = z.object({
     .nullable(),
   titulaire_utilisateur_id: z.string().optional().or(z.literal("")).nullable(),
 });
-type FormValues = z.infer<typeof Schema>;
+type FormInput = z.input<typeof Schema>;
+type FormValues = z.output<typeof Schema>;
 
 type Niveau = { id: string; libelle: string; code: string; cycle: string };
 type Annee = { id: string; libelle: string; active: boolean };
@@ -66,7 +67,7 @@ export function ClasseDialog({
   const [submitting, setSubmitting] = React.useState(false);
   const activeAnnee = annees.find((a) => a.active);
 
-  const form = useForm<FormValues>({
+  const form = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(Schema),
     defaultValues: {
       annee_scolaire_id: activeAnnee?.id ?? annees[0]?.id ?? "",

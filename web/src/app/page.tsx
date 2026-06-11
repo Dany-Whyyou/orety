@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { VitrineNavbar } from "@/components/vitrine/navbar";
 import { VitrineHero } from "@/components/vitrine/hero";
+import { VitrineBande } from "@/components/vitrine/bande";
 import { VitrineCycles } from "@/components/vitrine/cycles";
 import { VitrineAtouts } from "@/components/vitrine/atouts";
 import { VitrineGalerie } from "@/components/vitrine/galerie";
@@ -38,6 +39,7 @@ export default function Home() {
       <VitrineNavbar />
       <main className="flex-1">
         <VitrineHero />
+        <VitrineBande />
         <VitrineCycles />
         <VitrineAtouts />
         <VitrineGalerie />

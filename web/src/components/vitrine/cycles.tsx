@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Baby, BookOpen, GraduationCap, Library } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Reveal, Stagger, StaggerItem } from "./motion";
 
 const cycles = [
   {
@@ -57,7 +58,7 @@ export function VitrineCycles() {
   return (
     <section id="cycles" className="scroll-mt-20 py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">
             Nos cycles
           </p>
@@ -69,13 +70,13 @@ export function VitrineCycles() {
             nationale, le C.S.O accompagne chaque élève à chaque étape de sa
             scolarité.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <Stagger className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {cycles.map((cycle) => (
-            <div
+            <StaggerItem
               key={cycle.nom}
-              className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
+              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/10"
             >
               <div className="relative h-40 overflow-hidden">
                 <Image
@@ -117,9 +118,9 @@ export function VitrineCycles() {
                   {cycle.slogan}
                 </span>
               </div>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       </div>
     </section>
   );

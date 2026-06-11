@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Reveal, Stagger, StaggerItem } from "./motion";
 
 const photos = [
   {
@@ -37,18 +38,18 @@ export function VitrineGalerie() {
   return (
     <section className="py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">
             En images
           </p>
           <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
             La vie au C.S.O
           </h2>
-        </div>
+        </Reveal>
 
-        <div className="mt-12 grid auto-rows-[180px] grid-cols-1 gap-4 sm:grid-cols-3 sm:auto-rows-[200px]">
+        <Stagger className="mt-12 grid auto-rows-[180px] grid-cols-1 gap-4 sm:grid-cols-3 sm:auto-rows-[200px]">
           {photos.map((photo) => (
-            <figure
+            <StaggerItem
               key={photo.src}
               className={`group relative overflow-hidden rounded-2xl ${photo.classe}`}
             >
@@ -63,12 +64,12 @@ export function VitrineGalerie() {
                 aria-hidden
                 className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
               />
-              <figcaption className="absolute bottom-3 left-4 right-4 translate-y-2 text-sm font-medium text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+              <p className="absolute bottom-3 left-4 right-4 translate-y-2 text-sm font-medium text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                 {photo.legende}
-              </figcaption>
-            </figure>
+              </p>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       </div>
     </section>
   );

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Award, HeartHandshake, ShieldCheck, Target } from "lucide-react";
+import { Reveal, Stagger, StaggerItem } from "./motion";
 
 const atouts = [
   {
@@ -33,7 +34,7 @@ export function VitrineAtouts() {
     <section id="atouts" className="scroll-mt-20 bg-muted/50 py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid items-start gap-12 lg:grid-cols-[1fr_1.3fr]">
-          <div className="lg:sticky lg:top-24">
+          <Reveal direction="right" className="lg:sticky lg:top-24">
             <p className="text-sm font-semibold uppercase tracking-wider text-primary">
               Pourquoi le C.S.O
             </p>
@@ -65,13 +66,13 @@ export function VitrineAtouts() {
                 L&apos;équipe pédagogique du C.S.O, entourée de ses élèves
               </p>
             </div>
-          </div>
+          </Reveal>
 
-          <div className="grid gap-5 sm:grid-cols-2">
+          <Stagger className="grid gap-5 sm:grid-cols-2">
             {atouts.map((atout) => (
-              <div
+              <StaggerItem
                 key={atout.titre}
-                className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md"
+                className="h-full rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
               >
                 <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-primary-50 text-primary">
                   <atout.icon className="size-5" />
@@ -80,9 +81,9 @@ export function VitrineAtouts() {
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {atout.description}
                 </p>
-              </div>
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
         </div>
       </div>
     </section>

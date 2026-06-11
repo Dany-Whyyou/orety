@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Menu, X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ScrollProgress } from "./motion";
 
 const links = [
   { href: "#cycles", label: "Nos cycles" },
@@ -31,6 +32,7 @@ export function VitrineNavbar() {
         scrolled || open ? "glass shadow-sm" : "bg-transparent"
       )}
     >
+      <ScrollProgress />
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="#" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
           <Image

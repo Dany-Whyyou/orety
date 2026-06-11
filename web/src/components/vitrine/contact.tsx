@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Clock, Mailbox, MapPin, Phone } from "lucide-react";
+import { Reveal, Stagger, StaggerItem } from "./motion";
 
 const sites = [
   {
@@ -23,20 +24,20 @@ export function VitrineContact() {
   return (
     <section id="contact" className="scroll-mt-20 bg-muted/50 py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">
             Contact
           </p>
           <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
             Deux sites au cœur de Port-Gentil
           </h2>
-        </div>
+        </Reveal>
 
-        <div className="mt-12 grid gap-5 lg:grid-cols-3">
+        <Stagger className="mt-12 grid gap-5 lg:grid-cols-3">
           {sites.map((site) => (
-            <div
+            <StaggerItem
               key={site.nom}
-              className="group overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
+              className="group h-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="relative h-44 overflow-hidden">
                 <Image
@@ -63,10 +64,10 @@ export function VitrineContact() {
                   {site.cycles}
                 </p>
               </div>
-            </div>
+            </StaggerItem>
           ))}
 
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <StaggerItem className="h-full rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-primary-50 text-primary">
               <Phone className="size-5" />
             </div>
@@ -97,8 +98,8 @@ export function VitrineContact() {
               Les inscriptions se font sur place, au site principal ou à
               l&apos;annexe, tous les jours ouvrables de 8h à 13h.
             </p>
-          </div>
-        </div>
+          </StaggerItem>
+        </Stagger>
       </div>
     </section>
   );

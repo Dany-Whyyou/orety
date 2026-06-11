@@ -71,18 +71,18 @@ export function VitrineAdmissions() {
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <a
-              href="tel:+24107955851"
+              href="tel:+24177955851"
               className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 font-semibold text-primary-700 shadow-sm transition-transform hover:scale-[1.02]"
             >
               <Phone className="size-4" />
-              07 95 58 51
+              077 95 58 51
             </a>
             <a
-              href="tel:+24105826521"
+              href="tel:+24165826521"
               className="inline-flex h-11 items-center gap-2 rounded-full border border-white/40 px-5 font-semibold text-white transition-colors hover:bg-white/10"
             >
               <Phone className="size-4" />
-              05 82 65 21
+              065 82 65 21
             </a>
           </div>
         </div>

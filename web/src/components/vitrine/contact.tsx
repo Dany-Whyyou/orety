@@ -76,12 +76,12 @@ export function VitrineContact() {
               <li className="flex items-center gap-2.5">
                 <Phone className="size-4 shrink-0 text-primary" />
                 <span>
-                  <a href="tel:+24107955851" className="hover:text-foreground">
-                    07 95 58 51
+                  <a href="tel:+24177955851" className="hover:text-foreground">
+                    077 95 58 51
                   </a>
                   {" · "}
-                  <a href="tel:+24105826521" className="hover:text-foreground">
-                    05 82 65 21
+                  <a href="tel:+24165826521" className="hover:text-foreground">
+                    065 82 65 21
                   </a>
                 </span>
               </li>

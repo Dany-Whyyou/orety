@@ -1,30 +1,31 @@
-"use client";
-
 import { FileText } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { BulletinsView } from "@/components/bulletins/bulletins-view";
+import { getBulletins, getBulletinFormData } from "@/lib/queries/bulletins";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const [bulletins, formData] = await Promise.all([getBulletins(), getBulletinFormData()]);
+  const publies = bulletins.filter((b) => b.publie).length;
+
   return (
     <div className="max-w-[1600px] mx-auto">
       <PageHeader
         title="Bulletins"
-        description="Génération, édition et publication"
+        description={
+          bulletins.length === 0
+            ? "Aucun bulletin généré"
+            : `${bulletins.length} bulletin${bulletins.length > 1 ? "s" : ""} · ${publies} publié${publies > 1 ? "s" : ""}`
+        }
         icon={<FileText className="size-5" />}
         breadcrumbs={[{ label: "Bulletins" }]}
       />
-      <ComingSoon
-        icon={FileText}
-        title="Moteur de bulletins"
-        description="Génération automatique des bulletins par période et du bulletin annuel selon la formule configurée."
-        features={[
-          "Bulletin par période (trimestre/semestre/mois)",
-          "Bulletin annuel via formule personnalisée",
-          "Moyennes pondérées par coefficient",
-          "Rang dans la classe",
-          "Appréciations profs",
-          "Export PDF avec logo et signature",
-        ]}
+      <BulletinsView
+        bulletins={bulletins}
+        classes={formData.classes}
+        periodes={formData.periodes}
+        annees={formData.annees}
       />
     </div>
   );

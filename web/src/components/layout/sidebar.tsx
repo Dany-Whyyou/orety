@@ -221,10 +221,10 @@ export function Sidebar() {
                 <div className="absolute -top-8 -right-8 size-24 rounded-full bg-primary/20 blur-2xl" />
                 <div className="relative flex items-center gap-2 mb-1.5">
                   <Sparkles className="size-3.5 text-primary" />
-                  <span className="text-xs font-semibold">Année 2026-2027</span>
+                  <span className="text-xs font-semibold">Orety</span>
                 </div>
                 <p className="relative text-[11px] text-muted-foreground leading-relaxed mb-3">
-                  Rentrée en cours. Suivez les inscriptions en temps réel.
+                  Plateforme unifiée de gestion scolaire.
                 </p>
                 <Link
                   href="/admin/rapports"

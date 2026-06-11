@@ -1,31 +1,29 @@
-"use client";
-
 import { Calendar } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { AnneesList } from "@/components/annees/annees-list";
+import { getAnnees, getEtablissementsForForms } from "@/lib/queries/annees";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const [annees, etablissements] = await Promise.all([
+    getAnnees(),
+    getEtablissementsForForms(),
+  ]);
+
   return (
     <div className="max-w-[1600px] mx-auto">
       <PageHeader
         title="Années scolaires"
-        description="Configurer les années et la fréquence des bulletins"
+        description={
+          annees.length === 0
+            ? "Aucune année créée"
+            : `${annees.length} année${annees.length > 1 ? "s" : ""}`
+        }
         icon={<Calendar className="size-5" />}
         breadcrumbs={[{ label: "Années scolaires" }]}
       />
-      <ComingSoon
-        icon={Calendar}
-        title="Années scolaires & bulletins"
-        description="Définissez chaque année scolaire, la fréquence de sortie des bulletins et la formule du bulletin annuel."
-        features={[
-          "Fréquence : mensuelle, trimestrielle, semestrielle",
-          "Éditeur visuel de formule annuelle (ex: T1 + T2×2 + T3×2 ÷ 5)",
-          "Périodes générées automatiquement",
-          "Activation de l'année en cours",
-          "Historique des années passées",
-          "Configuration spécifique par établissement",
-        ]}
-      />
+      <AnneesList annees={annees} etablissements={etablissements} />
     </div>
   );
 }

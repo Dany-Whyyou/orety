@@ -1,30 +1,30 @@
-"use client";
-
 import { LibraryBig } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { ClassesList } from "@/components/classes/classes-list";
+import { getClasses, getClasseFormData } from "@/lib/queries/classes";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const [classes, formData] = await Promise.all([getClasses(), getClasseFormData()]);
+
   return (
     <div className="max-w-[1600px] mx-auto">
       <PageHeader
         title="Classes"
-        description="Groupes d'élèves de l'année en cours"
+        description={
+          classes.length === 0
+            ? "Aucune classe"
+            : `${classes.length} classe${classes.length > 1 ? "s" : ""}`
+        }
         icon={<LibraryBig className="size-5" />}
         breadcrumbs={[{ label: "Classes" }]}
       />
-      <ComingSoon
-        icon={LibraryBig}
-        title="Classes de l'année"
-        description="Gérez les classes, leur effectif et leur titulaire (pour le primaire)."
-        features={[
-          "Création par niveau × année",
-          "Titulaire unique (primaire)",
-          "Capacité maximum",
-          "Répartition des élèves",
-          "Vue d'emploi du temps",
-          "Statistiques de classe",
-        ]}
+      <ClassesList
+        classes={classes}
+        niveaux={formData.niveaux}
+        annees={formData.annees}
+        profs={formData.profs}
       />
     </div>
   );

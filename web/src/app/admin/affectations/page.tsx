@@ -1,30 +1,34 @@
-"use client";
-
 import { UserSquare } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { AffectationsView } from "@/components/affectations/affectations-view";
+import { getAffectations, getAffectationFormData } from "@/lib/queries/affectations";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const [affectations, formData] = await Promise.all([
+    getAffectations(),
+    getAffectationFormData(),
+  ]);
+
   return (
     <div className="max-w-[1600px] mx-auto">
       <PageHeader
         title="Affectations"
-        description="Attribution prof × classe × matière"
+        description={
+          affectations.length === 0
+            ? "Aucune affectation"
+            : `${affectations.length} affectation${affectations.length > 1 ? "s" : ""}`
+        }
         icon={<UserSquare className="size-5" />}
         breadcrumbs={[{ label: "Affectations" }]}
       />
-      <ComingSoon
-        icon={UserSquare}
-        title="Affectations pédagogiques"
-        description="Deux logiques selon le cycle : titulaire unique au primaire, prof par matière au collège/lycée."
-        features={[
-          "Primaire : un titulaire par classe (toutes matières)",
-          "Collège / Lycée : une affectation par matière",
-          "Un prof peut enseigner plusieurs matières",
-          "Matrice visuelle classe × matière",
-          "Vue par prof / par classe / par matière",
-          "Détection automatique des lacunes",
-        ]}
+      <AffectationsView
+        affectations={affectations}
+        profs={formData.profs}
+        classes={formData.classes}
+        matieres={formData.matieres}
+        annees={formData.annees}
       />
     </div>
   );

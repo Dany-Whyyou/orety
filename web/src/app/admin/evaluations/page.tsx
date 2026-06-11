@@ -1,30 +1,39 @@
-"use client";
-
 import { ClipboardList } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { EvaluationsView } from "@/components/evaluations/evaluations-view";
+import {
+  getEvaluations,
+  getTypesEvaluation,
+  getEvaluationFormData,
+} from "@/lib/queries/evaluations";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const [evaluations, types, formData] = await Promise.all([
+    getEvaluations(),
+    getTypesEvaluation(),
+    getEvaluationFormData(),
+  ]);
+
   return (
     <div className="max-w-[1600px] mx-auto">
       <PageHeader
         title="Évaluations"
-        description="Suivi des évaluations et des notes saisies"
+        description={
+          evaluations.length === 0
+            ? "Aucune évaluation"
+            : `${evaluations.length} évaluation${evaluations.length > 1 ? "s" : ""} · ${types.length} type${types.length > 1 ? "s" : ""} définis`
+        }
         icon={<ClipboardList className="size-5" />}
         breadcrumbs={[{ label: "Évaluations" }]}
       />
-      <ComingSoon
-        icon={ClipboardList}
-        title="Évaluations & notes"
-        description="Supervisez les évaluations saisies par les professeurs. Barème libre, bonus autorisé, normalisation automatique sur 20."
-        features={[
-          "Types d'évaluation (interro, devoir, compo)",
-          "Barème libre (sur 10, 20, 40…)",
-          "Bonus activable par évaluation",
-          "Pondération par poids × coefficient",
-          "Suivi par matière × classe × période",
-          "Alertes sur notes manquantes",
-        ]}
+      <EvaluationsView
+        evaluations={evaluations}
+        types={types}
+        affectations={formData.affectations}
+        periodes={formData.periodes}
+        etablissements={formData.etablissements}
       />
     </div>
   );

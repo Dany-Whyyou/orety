@@ -1,12 +1,11 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import { Bell, Search, Moon, Sun, Command, LogOut, Settings2, UserCog } from "lucide-react";
 import { useTheme } from "next-themes";
-import { cn, initials } from "@/lib/utils";
+import { initials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { logoutAction } from "@/app/(auth)/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -18,27 +17,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 type TopbarProps = {
-  user?: { pseudo: string; nom?: string; prenom?: string; role?: string; avatar?: string };
+  user: { pseudo: string; nom?: string; prenom?: string; role?: string; avatar?: string };
 };
 
 export function Topbar({ user }: TopbarProps) {
-  const u = user ?? {
-    pseudo: "ADM-DD-01",
-    nom: "Doviakon",
-    prenom: "Daniel",
-    role: "Directeur général",
-  };
-
   return (
     <header className="sticky top-0 z-20 h-16 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="h-full px-6 flex items-center gap-4">
-        {/* Search */}
         <SearchBar />
 
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
           <NotificationsButton />
-          <UserMenu user={u} />
+          <UserMenu user={user} />
         </div>
       </div>
     </header>
@@ -91,39 +82,18 @@ function NotificationsButton() {
           className="relative size-8 rounded-md hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
         >
           <Bell className="size-4" />
-          <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary ring-2 ring-background">
-            <span className="absolute inset-0 rounded-full bg-primary animate-ping" />
-          </span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>Notifications</span>
-          <Badge variant="info" className="text-[10px]">3 nouvelles</Badge>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <div className="max-h-80 overflow-y-auto">
-          {[
-            { title: "12 bulletins à valider", time: "il y a 10 min", type: "info" },
-            { title: "Nouveau message de M. Mboussou", time: "il y a 1 h", type: "info" },
-            { title: "3 élèves absents aujourd'hui", time: "ce matin", type: "warning" },
-            { title: "Rapport mensuel disponible", time: "hier", type: "success" },
-          ].map((n, i) => (
-            <DropdownMenuItem key={i} className="flex items-start gap-3 py-3 cursor-pointer">
-              <div
-                className={cn(
-                  "mt-1 size-2 rounded-full shrink-0",
-                  n.type === "info" && "bg-accent",
-                  n.type === "warning" && "bg-warning",
-                  n.type === "success" && "bg-emerald-500"
-                )}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{n.title}</p>
-                <p className="text-xs text-muted-foreground">{n.time}</p>
-              </div>
-            </DropdownMenuItem>
-          ))}
+        <div className="py-6 px-4 text-center">
+          <p className="text-sm text-muted-foreground">Aucune notification</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            Les alertes et événements apparaîtront ici.
+          </p>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -162,9 +132,14 @@ function UserMenu({ user }: { user: { pseudo: string; nom?: string; prenom?: str
           <Settings2 /> Paramètres
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-danger focus:text-danger">
-          <LogOut /> Déconnexion
-        </DropdownMenuItem>
+        <form action={logoutAction}>
+          <button
+            type="submit"
+            className="relative flex w-full cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none transition-colors hover:bg-secondary text-danger"
+          >
+            <LogOut className="size-4" /> Déconnexion
+          </button>
+        </form>
       </DropdownMenuContent>
     </DropdownMenu>
   );

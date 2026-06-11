@@ -16,6 +16,8 @@ import {
   BarChart3,
   Settings,
   Shield,
+  AlertTriangle,
+  Archive,
   type LucideIcon,
 } from "lucide-react";
 
@@ -56,7 +58,7 @@ export const adminNavigation: NavSection[] = [
   {
     label: "Élèves & parents",
     items: [
-      { label: "Élèves", href: "/admin/eleves", icon: Users, badge: "847" },
+      { label: "Élèves", href: "/admin/eleves", icon: Users },
       { label: "Parents", href: "/admin/parents", icon: KeyRound },
     ],
   },
@@ -66,6 +68,7 @@ export const adminNavigation: NavSection[] = [
       { label: "Évaluations", href: "/admin/evaluations", icon: ClipboardList },
       { label: "Bulletins", href: "/admin/bulletins", icon: FileText },
       { label: "Présences", href: "/admin/presences", icon: CalendarCheck },
+      { label: "Incidents", href: "/admin/incidents", icon: AlertTriangle },
     ],
   },
   {
@@ -73,6 +76,8 @@ export const adminNavigation: NavSection[] = [
     items: [
       { label: "Communications", href: "/admin/communications", icon: Megaphone },
       { label: "Rapports", href: "/admin/rapports", icon: BarChart3 },
+      { label: "Rapport annuel", href: "/admin/rapport-annuel", icon: FileText },
+      { label: "Archives", href: "/admin/archives", icon: Archive },
       { label: "Rôles & accès", href: "/admin/parametres/roles", icon: Shield },
       { label: "Paramètres", href: "/admin/parametres", icon: Settings },
     ],

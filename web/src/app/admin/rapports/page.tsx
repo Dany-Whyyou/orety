@@ -1,31 +1,22 @@
-"use client";
-
 import { BarChart3 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { RapportsView } from "@/components/rapports/rapports-view";
+import { getRapportData } from "@/lib/queries/rapports";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const data = await getRapportData();
+
   return (
     <div className="max-w-[1600px] mx-auto">
       <PageHeader
         title="Rapports"
-        description="Analytique et exports"
+        description="Vue analytique de l'établissement"
         icon={<BarChart3 className="size-5" />}
         breadcrumbs={[{ label: "Rapports" }]}
       />
-      <ComingSoon
-        icon={BarChart3}
-        title="Rapports & analytique"
-        description="Tableaux de bord avancés pour piloter l'établissement."
-        features={[
-          "Évolution des effectifs",
-          "Performance par classe / matière",
-          "Taux de réussite par cycle",
-          "Absences chroniques",
-          "Statistiques d'activité des profs",
-          "Export Excel / PDF / CSV",
-        ]}
-      />
+      <RapportsView data={data} />
     </div>
   );
 }

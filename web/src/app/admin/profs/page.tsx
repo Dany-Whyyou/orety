@@ -1,30 +1,30 @@
-"use client";
-
 import { UserCheck } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { ProfsList } from "@/components/profs/profs-list";
+import { getProfs, getProfFormData } from "@/lib/queries/profs";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const [profs, formData] = await Promise.all([getProfs(), getProfFormData()]);
+  const actifs = profs.filter((p) => p.actif).length;
+
   return (
     <div className="max-w-[1600px] mx-auto">
       <PageHeader
         title="Professeurs"
-        description="62 professeurs actifs"
+        description={
+          profs.length === 0
+            ? "Aucun prof enregistré"
+            : `${actifs} prof${actifs > 1 ? "s" : ""} actif${actifs > 1 ? "s" : ""}${profs.length - actifs > 0 ? ` · ${profs.length - actifs} suspendu${profs.length - actifs > 1 ? "s" : ""}` : ""}`
+        }
         icon={<UserCheck className="size-5" />}
         breadcrumbs={[{ label: "Professeurs" }]}
       />
-      <ComingSoon
-        icon={UserCheck}
-        title="Gestion des professeurs"
-        description="Créez les comptes professeurs (pseudo PR-*), gérez leurs matières enseignables et leurs interventions multi-sites."
-        features={[
-          "Pseudo auto-généré (ex: PR-DOVI-D)",
-          "Matières enseignables par prof",
-          "Intervention sur plusieurs établissements",
-          "Historique des affectations",
-          "Photo, contacts, matricule",
-          "Envoi des accès (email ou imprimé)",
-        ]}
+      <ProfsList
+        profs={profs}
+        etablissements={formData.etablissements}
+        matieres={formData.matieres}
       />
     </div>
   );

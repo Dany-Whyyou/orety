@@ -1,11 +1,15 @@
+import { redirect } from "next/navigation";
 import { Sidebar, SidebarProvider } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { getCurrentUser } from "@/lib/auth";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login?next=/admin");
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background relative">
-        {/* Ambient background decorations */}
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 overflow-hidden -z-10"
@@ -16,10 +20,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <Topbar />
-          <main className="flex-1 p-6 md:p-8">
-            {children}
-          </main>
+          <Topbar
+            user={{
+              pseudo: user.pseudo,
+              nom: user.nom ?? undefined,
+              prenom: user.prenom ?? undefined,
+              role: user.role?.libelle,
+              avatar: user.photo_url ?? undefined,
+            }}
+          />
+          <main className="flex-1 p-6 md:p-8">{children}</main>
         </div>
       </div>
     </SidebarProvider>

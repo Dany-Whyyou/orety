@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
+import { TrendingUp } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -14,18 +15,20 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const data = [
-  { mois: "Sept", primaire: 280, college: 310, lycee: 180 },
-  { mois: "Oct", primaire: 295, college: 318, lycee: 188 },
-  { mois: "Nov", primaire: 302, college: 322, lycee: 195 },
-  { mois: "Déc", primaire: 308, college: 326, lycee: 200 },
-  { mois: "Jan", primaire: 315, college: 330, lycee: 204 },
-  { mois: "Fév", primaire: 319, college: 332, lycee: 208 },
-  { mois: "Mars", primaire: 322, college: 336, lycee: 210 },
-  { mois: "Avr", primaire: 325, college: 340, lycee: 212 },
-];
+type SeriesPoint = {
+  mois: string;
+  primaire: number;
+  college: number;
+  lycee: number;
+};
 
-export function EnrollmentChart() {
+type EnrollmentChartProps = {
+  data?: SeriesPoint[];
+};
+
+export function EnrollmentChart({ data = [] }: EnrollmentChartProps) {
+  const hasData = data.length > 0 && data.some((d) => d.primaire + d.college + d.lycee > 0);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -42,80 +45,67 @@ export function EnrollmentChart() {
             <CardTitle>Évolution des effectifs</CardTitle>
             <CardDescription>Inscriptions par cycle depuis septembre</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
-            <Legend color="hsl(var(--primary))" label="Primaire" />
-            <Legend color="hsl(var(--accent))" label="Collège" />
-            <Legend color="hsl(var(--warning))" label="Lycée" />
-          </div>
+          {hasData && (
+            <div className="flex items-center gap-2">
+              <Legend color="hsl(var(--primary))" label="Primaire" />
+              <Legend color="hsl(var(--accent))" label="Collège" />
+              <Legend color="hsl(var(--warning))" label="Lycée" />
+            </div>
+          )}
         </CardHeader>
         <CardContent className="pb-2">
-          <div className="h-72 w-full">
-            <ResponsiveContainer>
-              <AreaChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gradPrimaire" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradCollege" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradLycee" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--warning))" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="hsl(var(--warning))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis
-                  dataKey="mois"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }}
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--popover) / 0.95)",
-                    backdropFilter: "blur(12px)",
-                    border: "1px solid hsl(var(--border) / 0.6)",
-                    borderRadius: "0.75rem",
-                    fontSize: "12px",
-                    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-                  }}
-                  labelStyle={{ fontWeight: 600, marginBottom: 4 }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="primaire"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  fill="url(#gradPrimaire)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="college"
-                  stroke="hsl(var(--accent))"
-                  strokeWidth={2}
-                  fill="url(#gradCollege)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="lycee"
-                  stroke="hsl(var(--warning))"
-                  strokeWidth={2}
-                  fill="url(#gradLycee)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {hasData ? (
+            <div className="h-72 w-full">
+              <ResponsiveContainer>
+                <AreaChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradPrimaire" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradCollege" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradLycee" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--warning))" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="hsl(var(--warning))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="mois" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--popover) / 0.95)",
+                      backdropFilter: "blur(12px)",
+                      border: "1px solid hsl(var(--border) / 0.6)",
+                      borderRadius: "0.75rem",
+                      fontSize: "12px",
+                      boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                    }}
+                    labelStyle={{ fontWeight: 600, marginBottom: 4 }}
+                  />
+                  <Area type="monotone" dataKey="primaire" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#gradPrimaire)" />
+                  <Area type="monotone" dataKey="college" stroke="hsl(var(--accent))" strokeWidth={2} fill="url(#gradCollege)" />
+                  <Area type="monotone" dataKey="lycee" stroke="hsl(var(--warning))" strokeWidth={2} fill="url(#gradLycee)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-72 flex flex-col items-center justify-center gap-3 text-center">
+              <div className="size-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-primary">
+                <TrendingUp className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Pas encore de données</p>
+                <p className="text-xs text-muted-foreground mt-0.5 max-w-xs">
+                  La courbe s'alimentera automatiquement dès les premières inscriptions.
+                </p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

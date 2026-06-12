@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
-import { Baby, BookOpen, GraduationCap, Library } from "lucide-react";
+import { motion, useScroll, useSpring } from "framer-motion";
+import { Baby, BookOpen, GraduationCap, Library, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Reveal } from "./motion";
 import { SectionHeader } from "./section-header";
@@ -19,7 +19,9 @@ const cycles = [
       "Un cadre bienveillant et stimulant pour les premiers apprentissages : éveil, langage, motricité et vie en collectivité.",
     photo: "/photos/cour-prescolaire.jpg",
     alt: "La cour du pré-primaire et ses salles de classe",
-    badge: "border-warning/50 bg-warning/20 text-warning",
+    accent: "bg-warning/15 text-yellow-700 dark:text-warning",
+    badge: "border-warning/40 bg-warning/10 text-yellow-700 dark:text-warning",
+    point: "bg-warning",
   },
   {
     icon: BookOpen,
@@ -28,10 +30,12 @@ const cycles = [
     tranche: "De la 1re à la 5e année",
     slogan: "La référence",
     description:
-      "Des fondamentaux solides — lecture, écriture, calcul — avec un suivi individualisé jusqu'au certificat d'études primaires.",
+      "Des fondamentaux solides — lecture, écriture, calcul — avec un suivi individualisé jusqu'au certificat d'études primaires, réussi à 100 %.",
     photo: "/photos/sous-le-manguier.jpg",
     alt: "Élèves du primaire dans la cour, sous le grand manguier",
-    badge: "border-danger/50 bg-danger/25 text-red-100",
+    accent: "bg-danger/10 text-danger",
+    badge: "border-danger/30 bg-danger/10 text-danger",
+    point: "bg-danger",
   },
   {
     icon: Library,
@@ -43,7 +47,9 @@ const cycles = [
       "Ouvert depuis la rentrée 2025-2026, le collège accueille notamment les élèves orientés par l'État, dans la continuité de nos exigences.",
     photo: "/photos/escalier-college.jpg",
     alt: "Élèves sur les marches du bâtiment Collège & Lycée",
-    badge: "border-primary-200/60 bg-primary/30 text-primary-100",
+    accent: "bg-primary-50 text-primary",
+    badge: "border-primary/30 bg-primary-50 text-primary-700",
+    point: "bg-primary",
   },
   {
     icon: GraduationCap,
@@ -55,15 +61,22 @@ const cycles = [
       "Préparer le baccalauréat et l'avenir : rigueur, méthode et accompagnement vers les études supérieures.",
     photo: "/photos/lyceennes.jpg",
     alt: "Élèves du collège-lycée avec leur enseignante",
-    badge: "border-primary-200/60 bg-primary/30 text-primary-100",
+    accent: "bg-accent/10 text-accent",
+    badge: "border-accent/30 bg-accent/10 text-accent",
+    point: "bg-accent",
   },
 ];
 
 export function VitrineCycles() {
-  const [actif, setActif] = React.useState(0);
+  const ref = React.useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start 70%", "end 75%"],
+  });
+  const ligne = useSpring(scrollYProgress, { stiffness: 90, damping: 24 });
 
   return (
-    <section id="cycles" className="scroll-mt-20 py-24">
+    <section id="cycles" className="scroll-mt-20 overflow-hidden py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeader
           kicker="Nos cycles"
@@ -71,110 +84,140 @@ export function VitrineCycles() {
           description="Établissement établi et reconnu par le ministère de l'Éducation nationale, le C.S.O accompagne chaque élève à chaque étape de sa scolarité."
         />
 
-        <Reveal className="mt-14" delay={0.1}>
-          <div className="flex h-[40rem] flex-col gap-3 sm:h-[34rem] lg:flex-row lg:gap-4">
+        <div ref={ref} className="relative mt-20">
+          {/* ligne de parcours */}
+          <div
+            aria-hidden
+            className="absolute bottom-0 left-5 top-0 w-px bg-border lg:left-1/2 lg:-translate-x-1/2"
+          />
+          <motion.div
+            aria-hidden
+            className="absolute bottom-0 left-5 top-0 w-px origin-top bg-gradient-to-b from-warning via-primary to-accent lg:left-1/2 lg:-translate-x-1/2"
+            style={{ scaleY: ligne }}
+          />
+
+          <div className="space-y-20 lg:space-y-28">
             {cycles.map((cycle, i) => {
-              const estActif = actif === i;
+              const inverse = i % 2 === 1;
               return (
-                <motion.button
+                <div
                   key={cycle.nom}
-                  type="button"
-                  onMouseEnter={() => setActif(i)}
-                  onFocus={() => setActif(i)}
-                  onClick={() => setActif(i)}
-                  aria-expanded={estActif}
-                  className={cn(
-                    "group relative min-h-0 cursor-pointer overflow-hidden rounded-3xl text-left ring-1 ring-border",
-                    estActif && "shadow-2xl shadow-primary/20"
-                  )}
-                  animate={{ flexGrow: estActif ? 4 : 1 }}
-                  style={{ flexBasis: 0 }}
-                  transition={{ type: "spring", stiffness: 160, damping: 24 }}
+                  className="relative grid items-center gap-8 pl-14 lg:grid-cols-2 lg:gap-16 lg:pl-0"
                 >
-                  <Image
-                    src={cycle.photo}
-                    alt={cycle.alt}
-                    fill
-                    sizes="(min-width: 1024px) 60vw, 100vw"
-                    className={cn(
-                      "object-cover transition-all duration-700",
-                      estActif ? "scale-100 saturate-100" : "scale-110 saturate-[0.55]"
-                    )}
-                  />
+                  {/* point sur la ligne */}
                   <div
                     aria-hidden
-                    className={cn(
-                      "absolute inset-0 transition-opacity duration-500",
-                      estActif
-                        ? "bg-gradient-to-t from-primary-900/95 via-primary-900/35 to-transparent"
-                        : "bg-primary-900/60"
-                    )}
-                  />
-
-                  {/* numéro en filigrane */}
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "absolute right-4 top-3 font-display text-5xl font-black text-transparent transition-opacity duration-500 sm:text-6xl",
-                      estActif ? "opacity-90" : "opacity-40"
-                    )}
-                    style={{ WebkitTextStroke: "1.5px rgba(255,255,255,0.5)" }}
+                    className="absolute left-5 top-2 -translate-x-1/2 lg:left-1/2 lg:top-1/2 lg:-translate-y-1/2"
                   >
-                    {cycle.numero}
-                  </span>
+                    <span className="relative flex size-5 items-center justify-center">
+                      <span
+                        className={cn(
+                          "absolute size-full animate-ping rounded-full opacity-25",
+                          cycle.point
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "relative size-3.5 rounded-full ring-4 ring-background",
+                          cycle.point
+                        )}
+                      />
+                    </span>
+                  </div>
 
-                  {/* état replié */}
-                  {!estActif && (
-                    <div className="absolute inset-0 flex items-end p-5 lg:items-end">
-                      <div className="flex items-center gap-3 lg:flex-col lg:items-start">
-                        <span className="flex size-10 items-center justify-center rounded-xl bg-white/15 text-white backdrop-blur-sm">
-                          <cycle.icon className="size-5" />
-                        </span>
-                        <span className="font-display text-lg font-bold text-white drop-shadow lg:[writing-mode:vertical-rl] lg:rotate-180 lg:text-xl">
-                          {cycle.nom}
-                        </span>
-                      </div>
+                  {/* photo */}
+                  <Reveal
+                    direction={inverse ? "left" : "right"}
+                    className={cn("relative", inverse && "lg:order-2")}
+                  >
+                    <div
+                      className={cn(
+                        "group relative overflow-hidden rounded-3xl shadow-xl ring-1 ring-border",
+                        inverse ? "lg:rotate-1" : "lg:-rotate-1"
+                      )}
+                    >
+                      <Image
+                        src={cycle.photo}
+                        alt={cycle.alt}
+                        width={1600}
+                        height={1200}
+                        sizes="(min-width: 1024px) 520px, 100vw"
+                        className="aspect-[16/11] w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div
+                        aria-hidden
+                        className="absolute inset-0 bg-gradient-to-t from-primary-900/40 via-transparent to-transparent"
+                      />
+                      <span className="absolute bottom-4 left-5 font-display text-sm font-bold uppercase tracking-[0.2em] text-white/90">
+                        {cycle.tranche}
+                      </span>
                     </div>
-                  )}
+                    {/* numéro en filigrane derrière la photo */}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "absolute -top-12 -z-10 hidden font-display text-[9rem] font-black leading-none text-transparent lg:block",
+                        inverse ? "-right-6" : "-left-6"
+                      )}
+                      style={{ WebkitTextStroke: "1.5px hsl(var(--border))" }}
+                    >
+                      {cycle.numero}
+                    </span>
+                  </Reveal>
 
-                  {/* état déployé */}
-                  <AnimatePresence>
-                    {estActif && (
-                      <motion.div
-                        className="absolute inset-x-0 bottom-0 p-6 sm:p-8"
-                        initial={{ opacity: 0, y: 28 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 16 }}
-                        transition={{ duration: 0.45, delay: 0.12, ease: [0.21, 0.47, 0.32, 0.98] }}
-                      >
-                        <span className="flex size-12 items-center justify-center rounded-2xl bg-white/15 text-white backdrop-blur-sm">
-                          <cycle.icon className="size-6" />
-                        </span>
-                        <h3 className="mt-4 font-display text-2xl font-bold text-white sm:text-3xl">
-                          {cycle.nom}
-                        </h3>
-                        <p className="mt-1 text-sm font-semibold text-white/70">
-                          {cycle.tranche}
-                        </p>
-                        <p className="mt-3 max-w-md text-sm leading-relaxed text-white/85">
-                          {cycle.description}
-                        </p>
-                        <span
-                          className={cn(
-                            "mt-4 inline-flex w-fit items-center rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider backdrop-blur-sm",
-                            cycle.badge
-                          )}
-                        >
-                          {cycle.slogan}
-                        </span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
+                  {/* contenu */}
+                  <Reveal
+                    direction={inverse ? "right" : "left"}
+                    delay={0.12}
+                    className={cn(inverse && "lg:order-1 lg:text-right")}
+                  >
+                    <div
+                      className={cn(
+                        "flex size-12 items-center justify-center rounded-2xl",
+                        cycle.accent,
+                        inverse && "lg:ml-auto"
+                      )}
+                    >
+                      <cycle.icon className="size-6" />
+                    </div>
+                    <h3 className="mt-5 font-display text-2xl font-bold tracking-tight sm:text-3xl">
+                      {cycle.nom}
+                    </h3>
+                    <p className="mt-1 text-sm font-semibold text-muted-foreground">
+                      {cycle.tranche}
+                    </p>
+                    <p
+                      className={cn(
+                        "mt-4 max-w-md leading-relaxed text-muted-foreground",
+                        inverse && "lg:ml-auto"
+                      )}
+                    >
+                      {cycle.description}
+                    </p>
+                    <span
+                      className={cn(
+                        "mt-5 inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider",
+                        cycle.badge
+                      )}
+                    >
+                      {cycle.slogan}
+                    </span>
+                  </Reveal>
+                </div>
               );
             })}
           </div>
-        </Reveal>
+
+          {/* aboutissement : le bac */}
+          <Reveal className="relative mt-20 flex justify-center pl-14 lg:mt-24 lg:pl-0">
+            <div className="relative inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-primary-700 via-primary to-accent px-7 py-3.5 text-white shadow-lg shadow-primary/30">
+              <Award className="size-5" />
+              <span className="font-display text-sm font-bold uppercase tracking-[0.15em]">
+                Cap sur le baccalauréat
+              </span>
+            </div>
+          </Reveal>
+        </div>
       </div>
     </section>
   );

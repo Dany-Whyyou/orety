@@ -22,7 +22,7 @@ const photos = [
   {
     src: "/photos/duo-traditionnel.jpg",
     alt: "Deux élèves en tenues traditionnelles",
-    legende: "Fières de leurs racines",
+    legende: "Tenues traditionnelles",
     classe: "sm:row-span-2",
   },
   {

@@ -65,13 +65,13 @@ export function VitrineCulture() {
               Journée culturelle
             </p>
             <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-              Une école fière de ses racines
+              La culture à l&apos;honneur
             </h2>
             <p className="mt-4 max-w-xl leading-relaxed text-muted-foreground">
-              Chaque année, la journée culturelle célèbre le patrimoine
-              gabonais : tenues traditionnelles, contes, danses et chants. Un
-              moment fort où les élèves découvrent et transmettent la richesse
-              de leurs cultures, dans la joie et la fierté.
+              Chaque année, la journée culturelle met à l&apos;honneur le
+              patrimoine gabonais : tenues traditionnelles, contes, danses et
+              chants. Un moment fort de partage et de découverte pour tous les
+              élèves, dans la joie et la bonne humeur.
             </p>
           </Reveal>
 

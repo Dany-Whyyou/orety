@@ -35,8 +35,8 @@ const cycles = [
     slogan: "Persévérance-Excellence",
     description:
       "Ouvert depuis la rentrée 2025-2026, le collège accueille notamment les élèves orientés par l'État, dans la continuité de nos exigences.",
-    photo: "/photos/vie-scolaire.jpg",
-    alt: "Élèves dans la cour du collège",
+    photo: "/photos/escalier-college.jpg",
+    alt: "Élèves sur les marches du bâtiment Collège & Lycée",
     accent: "bg-primary-50 text-primary",
     badge: "border-primary/30 bg-primary-50 text-primary-700",
   },
@@ -47,8 +47,8 @@ const cycles = [
     slogan: "Persévérance-Excellence",
     description:
       "Préparer le baccalauréat et l'avenir : rigueur, méthode et accompagnement vers les études supérieures.",
-    photo: "/photos/eleves-preau.jpg",
-    alt: "Élèves rassemblés sous le préau",
+    photo: "/photos/lyceennes.jpg",
+    alt: "Élèves du collège-lycée avec leur enseignante",
     accent: "bg-primary-50 text-primary",
     badge: "border-primary/30 bg-primary-50 text-primary-700",
   },

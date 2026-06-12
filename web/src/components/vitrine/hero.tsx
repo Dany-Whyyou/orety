@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { ArrowRight, Sparkles, Trophy, Users, MapPin } from "lucide-react";
-import { CountUp, Stagger, StaggerItem } from "./motion";
+import { CountUp, Magnetic, Stagger, StaggerItem } from "./motion";
 import { HeroVisual } from "./hero-visual";
+import { HeroTitle } from "./hero-title";
 
 const stats = [
   {
@@ -41,12 +42,7 @@ export function VitrineHero() {
             </StaggerItem>
 
             <StaggerItem>
-              <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl xl:text-6xl">
-                Complexe Scolaire{" "}
-                <span className="animate-gradient bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] bg-clip-text text-transparent">
-                  Orety
-                </span>
-              </h1>
+              <HeroTitle />
             </StaggerItem>
 
             <StaggerItem>
@@ -59,19 +55,23 @@ export function VitrineHero() {
 
             <StaggerItem>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="#admissions"
-                  className="group inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-primary via-primary-500 to-accent bg-[length:200%_100%] bg-left px-8 font-semibold text-white shadow-lg shadow-primary/25 transition-all duration-500 hover:bg-right hover:shadow-xl hover:shadow-primary/40"
-                >
-                  Inscrire mon enfant
-                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-                </a>
-                <a
-                  href="#cycles"
-                  className="inline-flex h-12 items-center rounded-full border border-border bg-card px-8 font-semibold transition-all hover:-translate-y-0.5 hover:bg-muted hover:shadow-md"
-                >
-                  Découvrir nos cycles
-                </a>
+                <Magnetic>
+                  <a
+                    href="#admissions"
+                    className="group inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-primary via-primary-500 to-accent bg-[length:200%_100%] bg-left px-8 font-semibold text-white shadow-lg shadow-primary/25 transition-all duration-500 hover:bg-right hover:shadow-xl hover:shadow-primary/40"
+                  >
+                    Inscrire mon enfant
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+                  </a>
+                </Magnetic>
+                <Magnetic strength={0.2}>
+                  <a
+                    href="#cycles"
+                    className="inline-flex h-12 items-center rounded-full border border-border bg-card px-8 font-semibold transition-all hover:-translate-y-0.5 hover:bg-muted hover:shadow-md"
+                  >
+                    Découvrir nos cycles
+                  </a>
+                </Magnetic>
               </div>
             </StaggerItem>
 

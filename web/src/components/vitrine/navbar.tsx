@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { Menu, X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollProgress } from "./motion";
@@ -17,12 +18,29 @@ const links = [
 export function VitrineNavbar() {
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
+  const [actif, setActif] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  React.useEffect(() => {
+    const sections = links
+      .map((l) => document.getElementById(l.href.slice(1)))
+      .filter((el): el is HTMLElement => el !== null);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActif(`#${entry.target.id}`);
+        }
+      },
+      { rootMargin: "-35% 0px -55% 0px" }
+    );
+    sections.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -53,8 +71,20 @@ export function VitrineNavbar() {
             <a
               key={link.href}
               href={link.href}
-              className="rounded-full px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className={cn(
+                "relative rounded-full px-3.5 py-2 text-sm font-medium transition-colors",
+                actif === link.href
+                  ? "text-primary-700 dark:text-primary-500"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
+              {actif === link.href && (
+                <motion.span
+                  layoutId="nav-pill"
+                  className="absolute inset-0 -z-10 rounded-full bg-primary-50"
+                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                />
+              )}
               {link.label}
             </a>
           ))}

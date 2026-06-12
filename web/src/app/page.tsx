@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { VitrineIntro } from "@/components/vitrine/intro";
 import { VitrineNavbar } from "@/components/vitrine/navbar";
 import { VitrineHero } from "@/components/vitrine/hero";
 import { VitrineBande } from "@/components/vitrine/bande";
@@ -38,6 +39,7 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      <VitrineIntro />
       <VitrineNavbar />
       <main className="flex-1">
         <VitrineHero />

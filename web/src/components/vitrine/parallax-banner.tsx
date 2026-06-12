@@ -15,7 +15,7 @@ export function VitrineParallax() {
   const scale = useTransform(scrollYProgress, [0.15, 0.45], [0.92, 1]);
 
   return (
-    <section ref={ref} className="relative h-[26rem] overflow-hidden sm:h-[30rem]">
+    <section ref={ref} className="grain relative h-[26rem] overflow-hidden sm:h-[30rem]">
       <motion.div className="absolute inset-[-14%]" style={{ y }}>
         <Image
           src="/photos/journee-culturelle.jpg"

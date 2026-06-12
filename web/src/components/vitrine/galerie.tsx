@@ -107,13 +107,18 @@ export function VitrineGalerie() {
                 className="absolute inset-0 size-full cursor-zoom-in text-left"
                 aria-label={`Agrandir : ${photo.legende}`}
               >
-                <Image
-                  src={photo.src}
-                  alt={photo.alt}
-                  fill
-                  sizes="(min-width: 640px) 33vw, 100vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                <motion.span
+                  layoutId={`galerie-${i}`}
+                  className="absolute inset-0 block overflow-hidden rounded-2xl"
+                >
+                  <Image
+                    src={photo.src}
+                    alt={photo.alt}
+                    fill
+                    sizes="(min-width: 640px) 33vw, 100vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </motion.span>
                 <span
                   aria-hidden
                   className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
@@ -138,11 +143,9 @@ export function VitrineGalerie() {
           >
             <motion.figure
               key={actif}
-              className="relative max-h-full w-full max-w-4xl"
-              initial={{ opacity: 0, scale: 0.92, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3, ease: [0.21, 0.47, 0.32, 0.98] }}
+              layoutId={`galerie-${actif}`}
+              className="relative max-h-full w-full max-w-4xl overflow-hidden rounded-2xl"
+              transition={{ type: "spring", stiffness: 220, damping: 28 }}
               onClick={(e) => e.stopPropagation()}
             >
               <Image
@@ -154,7 +157,7 @@ export function VitrineGalerie() {
                 className="max-h-[80vh] w-full rounded-2xl object-contain"
                 priority
               />
-              <figcaption className="mt-3 text-center text-sm text-white/80">
+              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 pb-3 pt-10 text-center text-sm text-white/90">
                 {photos[actif].legende} — {actif + 1} / {photos.length}
               </figcaption>
             </motion.figure>

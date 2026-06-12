@@ -33,8 +33,8 @@ export function Reveal({ children, direction = "up", delay = 0, className }: Rev
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, x, y }}
-      whileInView={{ opacity: 1, x: 0, y: 0 }}
+      initial={{ opacity: 0, x, y, filter: "blur(8px)" }}
+      whileInView={{ opacity: 1, x: 0, y: 0, filter: "blur(0px)" }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.65, delay, ease: [0.21, 0.47, 0.32, 0.98] }}
     >
@@ -81,11 +81,12 @@ export function StaggerItem({
     <motion.div
       className={className}
       variants={{
-        hidden: { opacity: 0, y: 28, scale: 0.97 },
+        hidden: { opacity: 0, y: 28, scale: 0.97, filter: "blur(6px)" },
         visible: {
           opacity: 1,
           y: 0,
           scale: 1,
+          filter: "blur(0px)",
           transition: { duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98] },
         },
       }}
@@ -188,6 +189,89 @@ export function TiltCard({
     >
       {children}
     </motion.div>
+  );
+}
+
+/* ---------- Bouton magnétique ---------- */
+
+export function Magnetic({
+  children,
+  className,
+  strength = 0.3,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  strength?: number;
+}) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const sx = useSpring(x, { stiffness: 200, damping: 18, mass: 0.3 });
+  const sy = useSpring(y, { stiffness: 200, damping: 18, mass: 0.3 });
+
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      style={{ x: sx, y: sy }}
+      onMouseMove={(e) => {
+        const rect = ref.current?.getBoundingClientRect();
+        if (!rect) return;
+        x.set((e.clientX - rect.left - rect.width / 2) * strength);
+        y.set((e.clientY - rect.top - rect.height / 2) * strength);
+      }}
+      onMouseLeave={() => {
+        x.set(0);
+        y.set(0);
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/* ---------- Titre révélé mot à mot ---------- */
+
+export function WordReveal({
+  children,
+  className,
+  delay = 0,
+}: {
+  children: string;
+  className?: string;
+  delay?: number;
+}) {
+  const mots = children.split(" ");
+  return (
+    <motion.span
+      className={className}
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.09, delayChildren: delay } },
+      }}
+    >
+      {mots.map((mot, i) => (
+        <span key={i} className="inline-block overflow-hidden align-bottom">
+          <motion.span
+            className="inline-block"
+            variants={{
+              hidden: { y: "110%", opacity: 0, filter: "blur(6px)" },
+              visible: {
+                y: 0,
+                opacity: 1,
+                filter: "blur(0px)",
+                transition: { duration: 0.7, ease: [0.21, 0.47, 0.32, 0.98] },
+              },
+            }}
+          >
+            {mot}
+          </motion.span>
+          {i < mots.length - 1 && <span>&nbsp;</span>}
+        </span>
+      ))}
+    </motion.span>
   );
 }
 

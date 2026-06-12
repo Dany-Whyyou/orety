@@ -1,10 +1,24 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Reveal } from "./motion";
 
 export function VitrineFooter() {
   return (
-    <footer className="border-t border-border bg-card">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <footer className="overflow-hidden border-t border-border bg-card">
+      <div aria-hidden className="pointer-events-none select-none">
+        <Reveal direction="up">
+          <p
+            className="-mb-[0.18em] whitespace-nowrap text-center font-display font-black leading-none tracking-tight text-transparent"
+            style={{
+              WebkitTextStroke: "1.5px hsl(var(--border))",
+              fontSize: "clamp(4.5rem, 15vw, 12rem)",
+            }}
+          >
+            C.S.O ORETY
+          </p>
+        </Reveal>
+      </div>
+      <div className="mx-auto max-w-6xl border-t border-border px-4 py-12 sm:px-6">
         <div className="flex flex-col items-start justify-between gap-8 sm:flex-row">
           <div className="max-w-xs">
             <div className="flex items-center gap-2.5">

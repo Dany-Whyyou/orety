@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { Baby, BookOpen, GraduationCap, Library } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Reveal, Stagger, StaggerItem } from "./motion";
+import { Stagger, StaggerItem } from "./motion";
+import { SectionHeader } from "./section-header";
 
 const cycles = [
   {
@@ -56,23 +57,15 @@ const cycles = [
 
 export function VitrineCycles() {
   return (
-    <section id="cycles" className="scroll-mt-20 py-20">
+    <section id="cycles" className="scroll-mt-20 py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <Reveal className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-            Nos cycles
-          </p>
-          <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-            Un parcours complet, de 3 ans au baccalauréat
-          </h2>
-          <p className="mt-4 text-muted-foreground">
-            Établissement établi et reconnu par le ministère de l&apos;Éducation
-            nationale, le C.S.O accompagne chaque élève à chaque étape de sa
-            scolarité.
-          </p>
-        </Reveal>
+        <SectionHeader
+          kicker="Nos cycles"
+          titre="Un parcours complet, de 3 ans au baccalauréat"
+          description="Établissement établi et reconnu par le ministère de l'Éducation nationale, le C.S.O accompagne chaque élève à chaque étape de sa scolarité."
+        />
 
-        <Stagger className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <Stagger className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {cycles.map((cycle) => (
             <StaggerItem
               key={cycle.nom}

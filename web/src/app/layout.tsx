@@ -19,9 +19,6 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Orety — Complexe Scolaire",
   description: "Plateforme de gestion scolaire — Complexe Scolaire Orety",
-  icons: {
-    icon: "/logo-neutre.png",
-  },
 };
 
 export default function RootLayout({

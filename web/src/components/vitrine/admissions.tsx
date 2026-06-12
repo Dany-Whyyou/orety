@@ -1,5 +1,6 @@
 import { CalendarCheck, Clock, FileText, Phone } from "lucide-react";
 import { Reveal, Stagger, StaggerItem } from "./motion";
+import { SectionHeader } from "./section-header";
 
 const etapes = [
   {
@@ -24,24 +25,15 @@ const etapes = [
 
 export function VitrineAdmissions() {
   return (
-    <section id="admissions" className="scroll-mt-20 py-20">
+    <section id="admissions" className="scroll-mt-20 py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <Reveal className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-            Admissions
-          </p>
-          <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-            Inscriptions ouvertes pour 2026-2027
-          </h2>
-          <p className="mt-4 text-muted-foreground">
-            Les inscriptions ont débuté et se poursuivent tous les jours
-            ouvrables, de 8h à 13h. Rejoignez-nous afin d&apos;offrir à vos
-            enfants l&apos;opportunité de s&apos;épanouir dans un cadre
-            accueillant et bienveillant.
-          </p>
-        </Reveal>
+        <SectionHeader
+          kicker="Admissions"
+          titre="Inscriptions ouvertes pour 2026-2027"
+          description="Les inscriptions ont débuté et se poursuivent tous les jours ouvrables, de 8h à 13h. Rejoignez-nous afin d'offrir à vos enfants l'opportunité de s'épanouir dans un cadre accueillant et bienveillant."
+        />
 
-        <Stagger className="mt-12 grid gap-5 md:grid-cols-3">
+        <Stagger className="mt-14 grid gap-5 md:grid-cols-3">
           {etapes.map((etape) => (
             <StaggerItem
               key={etape.titre}

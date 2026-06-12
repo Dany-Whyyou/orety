@@ -162,6 +162,11 @@
   border-color: hsl(var(--border));
 }
 
+::selection {
+  background: hsl(var(--primary) / 0.18);
+  color: hsl(var(--primary-900));
+}
+
 html {
   scroll-behavior: smooth;
 }

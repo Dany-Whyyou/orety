@@ -34,9 +34,10 @@ export function VitrineParallax() {
         className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
         style={{ opacity, scale }}
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-white/90 backdrop-blur">
+          <span aria-hidden className="size-1.5 rounded-full bg-warning" />
           Notre devise
-        </p>
+        </span>
         <blockquote className="mt-4 max-w-3xl font-display text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl">
           « Le travail, la persévérance
           <span className="block bg-gradient-to-r from-warning via-white to-warning bg-clip-text text-transparent">

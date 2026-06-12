@@ -57,14 +57,15 @@ function Rangee({
 
 export function VitrineCulture() {
   return (
-    <section className="overflow-hidden py-20">
+    <section className="overflow-hidden py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
           <Reveal direction="right">
-            <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+            <span className="inline-flex items-center gap-2 rounded-full border border-warning/40 bg-warning/10 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-yellow-700 dark:text-warning">
+              <span aria-hidden className="size-1.5 rounded-full bg-warning" />
               Journée culturelle
-            </p>
-            <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            </span>
+            <h2 className="mt-5 text-balance font-display text-3xl font-bold leading-[1.1] tracking-tight sm:text-4xl lg:text-[2.75rem]">
               La culture à l&apos;honneur
             </h2>
             <p className="mt-4 max-w-xl leading-relaxed text-muted-foreground">

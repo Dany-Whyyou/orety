@@ -4,7 +4,7 @@ import { WordReveal } from "./motion";
 
 export function HeroTitle() {
   return (
-    <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl xl:text-6xl">
+    <h1 className="text-balance font-display text-[2.6rem] font-bold leading-[1.05] tracking-tight sm:text-6xl xl:text-7xl">
       <WordReveal delay={0.15}>Complexe Scolaire</WordReveal>{" "}
       <WordReveal
         delay={0.45}

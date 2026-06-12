@@ -90,7 +90,7 @@ export function VitrineNavbar() {
           ))}
           <Link
             href="/login"
-            className="ml-2 inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary-700"
+            className="ml-2 inline-flex h-9 items-center gap-1.5 rounded-full bg-gradient-to-r from-primary via-primary-500 to-accent bg-[length:200%_100%] bg-left px-4 text-sm font-semibold text-white shadow-sm shadow-primary/25 transition-all duration-500 hover:bg-right hover:shadow-md hover:shadow-primary/35"
           >
             Espace personnel
             <ArrowRight className="size-3.5" />

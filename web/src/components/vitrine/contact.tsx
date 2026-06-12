@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Clock, Mailbox, MapPin, Phone } from "lucide-react";
-import { Reveal, Stagger, StaggerItem } from "./motion";
+import { Stagger, StaggerItem } from "./motion";
+import { SectionHeader } from "./section-header";
 
 const sites = [
   {
@@ -22,18 +23,14 @@ const sites = [
 
 export function VitrineContact() {
   return (
-    <section id="contact" className="scroll-mt-20 bg-muted/50 py-20">
+    <section id="contact" className="scroll-mt-20 bg-muted/50 py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <Reveal className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-            Contact
-          </p>
-          <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-            Deux sites au cœur de Port-Gentil
-          </h2>
-        </Reveal>
+        <SectionHeader
+          kicker="Contact"
+          titre="Deux sites au cœur de Port-Gentil"
+        />
 
-        <Stagger className="mt-12 grid gap-5 lg:grid-cols-3">
+        <Stagger className="mt-14 grid gap-5 lg:grid-cols-3">
           {sites.map((site) => (
             <StaggerItem
               key={site.nom}

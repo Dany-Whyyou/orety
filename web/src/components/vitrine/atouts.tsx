@@ -31,14 +31,15 @@ const atouts = [
 
 export function VitrineAtouts() {
   return (
-    <section id="atouts" className="scroll-mt-20 bg-muted/50 py-20">
+    <section id="atouts" className="scroll-mt-20 bg-muted/50 py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid items-start gap-12 lg:grid-cols-[1fr_1.3fr]">
           <Reveal direction="right" className="lg:sticky lg:top-24">
-            <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-50 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary-700">
+              <span aria-hidden className="size-1.5 rounded-full bg-primary" />
               Pourquoi le C.S.O
-            </p>
-            <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            </span>
+            <h2 className="mt-5 text-balance font-display text-3xl font-bold leading-[1.1] tracking-tight sm:text-4xl lg:text-[2.75rem]">
               Au complexe scolaire Orety, c&apos;est le travail, la persévérance
               et le succès
             </h2>

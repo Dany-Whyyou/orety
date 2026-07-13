@@ -35,7 +35,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ roleCode }: { roleCode?: string }) {
   const pathname = usePathname();
   const { collapsed, toggle } = useSidebar();
 
@@ -114,7 +114,15 @@ export function Sidebar() {
         {/* Nav */}
         <ScrollArea className="flex-1 relative">
           <nav className="px-3 py-4 space-y-6">
-            {adminNavigation.map((section) => (
+            {adminNavigation
+              .map((section) => ({
+                ...section,
+                items: section.items.filter(
+                  (item) => !item.roles || item.roles.includes(roleCode ?? "")
+                ),
+              }))
+              .filter((section) => section.items.length > 0)
+              .map((section) => (
               <div key={section.label}>
                 <AnimatePresence initial={false}>
                   {!collapsed && (

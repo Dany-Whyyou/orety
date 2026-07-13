@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, pseudoToEmail, ROLES_ADMINISTRATIFS } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 import type { Database } from "@/lib/supabase/database.types";
@@ -55,6 +56,7 @@ export async function generateParentPseudo(
   nom: string,
   prenom: string | null
 ): Promise<string> {
+  await requireAdmin();
   const supabase = createAdminClient();
   const nomSlug = slugify(nom).toUpperCase().slice(0, 8) || "PARENT";
   const prenomInitials = (prenom ?? "")
@@ -194,6 +196,34 @@ export async function toggleParentActif(
   }
 }
 
+/**
+ * Sécurité : on ne peut réinitialiser le mot de passe que d'un compte du rôle
+ * attendu, et strictement moins privilégié que soi (empêche un secrétariat de
+ * s'emparer d'un compte admin en régénérant son mot de passe).
+ */
+async function assertCibleReinitialisable(
+  user: Awaited<ReturnType<typeof getCurrentUser>>,
+  utilisateur_id: string,
+  roleAttendu: string
+): Promise<string | null> {
+  const supabase = createAdminClient();
+  const { data: cible } = await supabase
+    .from("utilisateurs")
+    .select("id, roles:role_id(code, niveau_hierarchique)")
+    .eq("id", utilisateur_id)
+    .maybeSingle();
+  if (!cible) return "Compte introuvable";
+  const role = Array.isArray(cible.roles) ? cible.roles[0] : cible.roles;
+  if (role?.code !== roleAttendu) {
+    return `Ce compte n'est pas un compte ${roleAttendu}`;
+  }
+  const monNiveau = user?.role?.niveau_hierarchique ?? 0;
+  if ((role?.niveau_hierarchique ?? 0) >= monNiveau) {
+    return "Vous ne pouvez pas réinitialiser le mot de passe d'un compte de niveau supérieur ou égal au vôtre";
+  }
+  return null;
+}
+
 export async function regenerateParentPassword(
   utilisateur_id: string
 ): Promise<ActionResult> {
@@ -228,7 +258,10 @@ export async function regenerateParentPassword(
 
 export async function deleteParent(utilisateur_id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "utilisateurs", utilisateur_id);
+    const gardeErr = await assertCibleReinitialisable(user, utilisateur_id, "parent");
+    if (gardeErr) return { ok: false, error: gardeErr };
     const supabase = createAdminClient();
 
     // Check: do any eleves still reference this parent via cle_parentale?

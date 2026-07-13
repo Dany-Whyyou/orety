@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, pseudoToEmail, ROLES_DIRECTION } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 import type { Database } from "@/lib/supabase/database.types";
@@ -167,7 +168,8 @@ export async function createProf(raw: unknown): Promise<ActionResult> {
 
 export async function updateProf(utilisateur_id: string, raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "utilisateurs", utilisateur_id);
     const input = profSchema.parse(raw);
     const supabase = createAdminClient();
 
@@ -244,9 +246,40 @@ export async function toggleProfActif(
   }
 }
 
+/**
+ * Sécurité : on ne peut réinitialiser le mot de passe que d'un compte du rôle
+ * attendu, et strictement moins privilégié que soi (empêche un secrétariat de
+ * s'emparer d'un compte admin en régénérant son mot de passe).
+ */
+async function assertCibleReinitialisable(
+  user: Awaited<ReturnType<typeof getCurrentUser>>,
+  utilisateur_id: string,
+  roleAttendu: string
+): Promise<string | null> {
+  const supabase = createAdminClient();
+  const { data: cible } = await supabase
+    .from("utilisateurs")
+    .select("id, roles:role_id(code, niveau_hierarchique)")
+    .eq("id", utilisateur_id)
+    .maybeSingle();
+  if (!cible) return "Compte introuvable";
+  const role = Array.isArray(cible.roles) ? cible.roles[0] : cible.roles;
+  if (role?.code !== roleAttendu) {
+    return `Ce compte n'est pas un compte ${roleAttendu}`;
+  }
+  const monNiveau = user?.role?.niveau_hierarchique ?? 0;
+  if ((role?.niveau_hierarchique ?? 0) >= monNiveau) {
+    return "Vous ne pouvez pas réinitialiser le mot de passe d'un compte de niveau supérieur ou égal au vôtre";
+  }
+  return null;
+}
+
 export async function regenerateProfPassword(utilisateur_id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "utilisateurs", utilisateur_id);
+    const gardeErr = await assertCibleReinitialisable(user, utilisateur_id, "prof");
+    if (gardeErr) return { ok: false, error: gardeErr };
     const authClient = createAuthClient();
     const supabase = createAdminClient();
     const password = generatePassword(12);
@@ -276,7 +309,8 @@ export async function regenerateProfPassword(utilisateur_id: string): Promise<Ac
 
 export async function deleteProf(utilisateur_id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "utilisateurs", utilisateur_id);
     const supabase = createAdminClient();
 
     // Conformité : archivage définitif, aucune suppression physique.

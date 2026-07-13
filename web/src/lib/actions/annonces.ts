@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_ADMINISTRATIFS } from "@/lib/auth";
 
 const schema = z.object({
@@ -73,6 +74,7 @@ export async function createAnnonce(raw: unknown): Promise<ActionResult> {
 export async function updateAnnonce(id: string, raw: unknown): Promise<ActionResult> {
   try {
     const user = await requireAuth();
+    await assertOwned(user, "annonces", id);
     const input = schema.parse(raw);
     const supabase = createAdminClient();
 
@@ -92,7 +94,12 @@ export async function updateAnnonce(id: string, raw: unknown): Promise<ActionRes
         classe_id: input.cible === "classe" ? input.classe_id : null,
         expire_le: input.expire_le || null,
         publiee: input.publiee,
-        publiee_le: input.publiee ? new Date().toISOString() : null,
+        // Ne pas écraser la date de première publication à chaque édition
+        publiee_le: input.publiee
+          ? avant?.publiee
+            ? undefined
+            : new Date().toISOString()
+          : null,
       })
       .eq("id", id)
       .select("id, titre, organisation_id")
@@ -115,6 +122,7 @@ export async function updateAnnonce(id: string, raw: unknown): Promise<ActionRes
 export async function toggleAnnoncePubliee(id: string, publiee: boolean): Promise<ActionResult> {
   try {
     const user = await requireAuth();
+    await assertOwned(user, "annonces", id);
     const supabase = createAdminClient();
     const { data: annonce, error } = await supabase
       .from("annonces")
@@ -176,7 +184,8 @@ async function notifierAnnonce(
 
 export async function deleteAnnonce(id: string): Promise<ActionResult> {
   try {
-    await requireAuth();
+    const user = await requireAuth();
+    await assertOwned(user, "annonces", id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("annonces")

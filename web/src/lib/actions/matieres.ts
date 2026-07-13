@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const schema = z.object({
@@ -57,7 +58,8 @@ export async function createMatiere(raw: unknown): Promise<ActionResult> {
 
 export async function updateMatiere(id: string, raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "matieres", id);
     const input = schema.parse(raw);
     const supabase = createAdminClient();
     const { error } = await supabase
@@ -80,7 +82,8 @@ export async function updateMatiere(id: string, raw: unknown): Promise<ActionRes
 
 export async function deleteMatiere(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "matieres", id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("matieres")

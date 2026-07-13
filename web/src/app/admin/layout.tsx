@@ -2,11 +2,22 @@ import { redirect } from "next/navigation";
 import { Sidebar, SidebarProvider } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { getCurrentUser, ROLES_ADMINISTRATIFS } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { getMesNotifications } from "@/lib/actions/notifications";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/admin");
+  // Session Auth encore valide mais compte désactivé/archivé ou organisation
+  // suspendue : on coupe la session, sinon le middleware nous renverrait ici
+  // en boucle (login → admin → login…).
+  if (!user) {
+    const supabase = await createClient();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    if (authUser) await supabase.auth.signOut();
+    redirect("/login?next=/admin");
+  }
   // Le dashboard est réservé au personnel : rôles administratifs système, ou
   // rôles sur mesure (comptable, surveillant…) au-dessus du niveau prof (20).
   // Parents et profs passent par les apps mobiles.
@@ -30,7 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div className="absolute bottom-0 right-1/4 size-[30rem] rounded-full bg-accent/[0.04] blur-3xl" />
         </div>
 
-        <Sidebar />
+        <Sidebar roleCode={roleCode} />
         <div className="flex-1 flex flex-col min-w-0">
           <Topbar
             user={{

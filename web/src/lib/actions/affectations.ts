@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const schema = z.object({
@@ -53,7 +54,8 @@ export async function createAffectation(raw: unknown): Promise<ActionResult> {
 
 export async function updateAffectation(id: string, raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "affectations", id);
     const input = schema.parse(raw);
     const supabase = createAdminClient();
     const { error } = await supabase
@@ -77,7 +79,8 @@ export async function updateAffectation(id: string, raw: unknown): Promise<Actio
 
 export async function deleteAffectation(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "affectations", id);
     const supabase = createAdminClient();
     // Une affectation portant des évaluations fait partie de l'historique
     // pédagogique : suppression refusée (conformité).

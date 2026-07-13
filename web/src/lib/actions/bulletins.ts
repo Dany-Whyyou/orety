@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 import {
   computeBulletinsPourPeriode,
@@ -48,8 +49,9 @@ async function requireAdmin() {
 /** Génère (ou régénère) les bulletins d'une classe pour une période donnée, ou annuel. */
 export async function generateBulletinsClasse(raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
     const input = generateSchema.parse(raw);
+    await assertOwned(user, "classes", input.classe_id);
     const supabase = createAdminClient();
 
     let computed;
@@ -104,7 +106,14 @@ export async function generateBulletinsClasse(raw: unknown): Promise<ActionResul
         })
         .select("id")
         .single();
-      if (bulletinErr) continue;
+      // Ne jamais avaler l'erreur : l'ancien bulletin vient d'être archivé,
+      // échouer ici sans le dire ferait disparaître le bulletin de la liste.
+      if (bulletinErr) {
+        return {
+          ok: false,
+          error: `Génération interrompue (${nbGenerated} bulletin(s) créé(s)) : ${bulletinErr.message}`,
+        };
+      }
 
       // Insert matières
       const matieresToInsert = c.matieres.map((m) => ({
@@ -134,7 +143,8 @@ export async function generateBulletinsClasse(raw: unknown): Promise<ActionResul
 
 export async function togglePublieBulletin(id: string, publie: boolean): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "bulletins", id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("bulletins")
@@ -153,7 +163,8 @@ export async function publishBulletinsLot(
   periode_id: string | null
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "classes", classe_id);
     const supabase = createAdminClient();
     const query = supabase
       .from("bulletins")
@@ -180,7 +191,8 @@ export async function publishBulletinsLot(
 
 export async function deleteBulletin(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "bulletins", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("bulletins").update({ archive_le: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };
@@ -196,7 +208,8 @@ export async function updateBulletinAppreciation(
   raw: unknown
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "bulletins", id);
     const input = updateSchema.parse(raw);
     const supabase = createAdminClient();
     const { error } = await supabase
@@ -223,7 +236,8 @@ export async function updateBulletinMatiere(
   raw: unknown
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "bulletin_matiere", id);
     const input = updateMatiereSchema.parse(raw);
     const supabase = createAdminClient();
     const { error } = await supabase
@@ -253,7 +267,8 @@ export async function enregistrerBulletinPdf(
   filename: string
 ): Promise<ActionResult & { url?: string }> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "bulletins", bulletinId);
     if (!pdfBase64 || pdfBase64.length > 7_000_000) {
       return { ok: false, error: "PDF invalide ou trop volumineux" };
     }

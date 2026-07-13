@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const FREQUENCES = ["mensuel", "trimestriel", "semestriel"] as const;
@@ -81,6 +82,7 @@ export async function createAnnee(raw: unknown): Promise<ActionResult> {
 export async function updateAnnee(id: string, raw: unknown): Promise<ActionResult> {
   try {
     const user = await requireAdmin();
+    await assertOwned(user, "annees_scolaires", id);
     const input = anneeSchema.parse(raw);
     if (new Date(input.date_fin) <= new Date(input.date_debut)) {
       return { ok: false, error: "Date de fin doit être après la date de début" };
@@ -119,6 +121,7 @@ export async function updateAnnee(id: string, raw: unknown): Promise<ActionResul
 export async function setAnneeActive(id: string): Promise<ActionResult> {
   try {
     const user = await requireAdmin();
+    await assertOwned(user, "annees_scolaires", id);
     const supabase = createAdminClient();
     await supabase
       .from("annees_scolaires")
@@ -139,7 +142,8 @@ export async function setAnneeActive(id: string): Promise<ActionResult> {
 
 export async function deleteAnnee(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "annees_scolaires", id);
     const supabase = createAdminClient();
     // Conformité : jamais de suppression physique d'une année scolaire
     const { data: annee } = await supabase
@@ -205,7 +209,57 @@ export async function saveConfigBulletin(
       .maybeSingle();
 
     let configId: string;
+    let regenererPeriodes = true;
     if (existing) {
+      configId = existing.id;
+
+      // La structure des périodes ne peut pas changer si des données y sont
+      // rattachées. On CONTRÔLE AVANT d'écrire quoi que ce soit.
+      const { data: config } = await supabase
+        .from("config_bulletins")
+        .select("frequence, nb_periodes")
+        .eq("id", configId)
+        .single();
+      const structureChange =
+        !!config &&
+        (config.frequence !== input.frequence || config.nb_periodes !== input.nb_periodes);
+
+      const { data: periodesExistantes } = await supabase
+        .from("periodes_scolaires")
+        .select("id")
+        .eq("config_bulletin_id", configId);
+      const periodeIds = (periodesExistantes ?? []).map((p) => p.id);
+
+      let periodesUtilisees = false;
+      if (periodeIds.length > 0) {
+        const [{ count: nbEvals }, { count: nbBulletins }, { count: nbObs }] = await Promise.all([
+          supabase
+            .from("evaluations")
+            .select("*", { count: "exact", head: true })
+            .in("periode_id", periodeIds),
+          supabase
+            .from("bulletins")
+            .select("*", { count: "exact", head: true })
+            .in("periode_id", periodeIds),
+          supabase
+            .from("observations")
+            .select("*", { count: "exact", head: true })
+            .in("periode_id", periodeIds),
+        ]);
+        periodesUtilisees = (nbEvals ?? 0) > 0 || (nbBulletins ?? 0) > 0 || (nbObs ?? 0) > 0;
+      }
+
+      if (structureChange && periodesUtilisees) {
+        return {
+          ok: false,
+          error:
+            "Des évaluations, bulletins ou observations sont déjà rattachés aux périodes : la fréquence et le nombre de périodes ne peuvent plus changer. Vous pouvez toujours modifier la formule annuelle et les seuils de notes.",
+        };
+      }
+
+      // Périodes conservées si la structure ne change pas (ou si elles sont utilisées)
+      regenererPeriodes = structureChange || periodeIds.length === 0;
+
       const { error } = await supabase
         .from("config_bulletins")
         .update({
@@ -216,33 +270,10 @@ export async function saveConfigBulletin(
           note_maximale: input.note_maximale,
           note_passage: input.note_passage,
         })
-        .eq("id", existing.id);
+        .eq("id", configId);
       if (error) return { ok: false, error: error.message };
-      configId = existing.id;
-      // Régénérer les périodes n'est permis que si aucune donnée n'y est rattachée
-      const { data: periodesExistantes } = await supabase
-        .from("periodes_scolaires")
-        .select("id")
-        .eq("config_bulletin_id", configId);
-      const periodeIds = (periodesExistantes ?? []).map((p) => p.id);
-      if (periodeIds.length > 0) {
-        const [{ count: nbEvals }, { count: nbBulletins }] = await Promise.all([
-          supabase
-            .from("evaluations")
-            .select("*", { count: "exact", head: true })
-            .in("periode_id", periodeIds),
-          supabase
-            .from("bulletins")
-            .select("*", { count: "exact", head: true })
-            .in("periode_id", periodeIds),
-        ]);
-        if ((nbEvals ?? 0) > 0 || (nbBulletins ?? 0) > 0) {
-          return {
-            ok: false,
-            error:
-              "Impossible de régénérer les périodes : des évaluations ou bulletins y sont rattachés. Modifiez uniquement la formule, ou créez une nouvelle année.",
-          };
-        }
+
+      if (regenererPeriodes && periodeIds.length > 0) {
         await supabase.from("periodes_scolaires").delete().eq("config_bulletin_id", configId);
       }
     } else {
@@ -262,6 +293,13 @@ export async function saveConfigBulletin(
         .single();
       if (error) return { ok: false, error: error.message };
       configId = data.id;
+    }
+
+    // Périodes : régénérées uniquement si la structure a changé (ou création).
+    // Sinon on conserve celles qui portent déjà évaluations/bulletins.
+    if (!regenererPeriodes) {
+      revalidatePath("/admin/annees");
+      return { ok: true };
     }
 
     // Generate periodes — split year evenly

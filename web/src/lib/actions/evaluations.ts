@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const typeSchema = z.object({
@@ -78,7 +79,8 @@ export async function createTypeEvaluation(raw: unknown): Promise<ActionResult> 
 
 export async function updateTypeEvaluation(id: string, raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "types_evaluation", id);
     const input = typeSchema.parse(raw);
     const supabase = createAdminClient();
     const { error } = await supabase
@@ -102,7 +104,8 @@ export async function updateTypeEvaluation(id: string, raw: unknown): Promise<Ac
 
 export async function deleteTypeEvaluation(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "types_evaluation", id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("types_evaluation")
@@ -153,6 +156,7 @@ export async function createEvaluation(raw: unknown): Promise<ActionResult> {
   try {
     const user = await requireAdmin();
     const input = evalSchema.parse(raw);
+    await assertOwned(user, "affectations", input.affectation_id);
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("evaluations")
@@ -183,7 +187,8 @@ export async function createEvaluation(raw: unknown): Promise<ActionResult> {
 
 export async function updateEvaluation(id: string, raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "evaluations", id);
     const input = evalSchema.parse(raw);
     const supabase = createAdminClient();
     const { error } = await supabase
@@ -231,7 +236,8 @@ export async function togglePubliee(id: string, publiee: boolean): Promise<Actio
 
 export async function deleteEvaluation(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "evaluations", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("evaluations").update({ archive_le: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };
@@ -248,6 +254,8 @@ export async function saveNote(raw: unknown): Promise<ActionResult> {
   try {
     const user = await requireAdmin();
     const input = noteSchema.parse(raw);
+    await assertOwned(user, "evaluations", input.evaluation_id);
+    await assertOwned(user, "eleves", input.eleve_id);
     const supabase = createAdminClient();
 
     // Upsert-style: check if exists
@@ -305,6 +313,8 @@ export async function deleteNote(): Promise<ActionResult> {
 }
 
 export async function getNotesForEvaluationRPC(evaluationId: string) {
+  const user = await requireAdmin();
+  await assertOwned(user, "evaluations", evaluationId);
   // Exposed wrapper to reload notes from the client (after mutations)
   const { getNotesForEvaluation } = await import("@/lib/queries/evaluations");
   return getNotesForEvaluation(evaluationId);

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 
@@ -84,7 +85,8 @@ export async function createEtablissement(raw: unknown): Promise<ActionResult> {
 
 export async function updateEtablissement(id: string, raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "etablissements", id);
     const input = schema.parse(raw);
     const supabase = createAdminClient();
     const { error } = await supabase
@@ -114,7 +116,8 @@ export async function updateEtablissement(id: string, raw: unknown): Promise<Act
 
 export async function toggleEtablissementActif(id: string, actif: boolean): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "etablissements", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("etablissements").update({ actif }).eq("id", id);
     if (error) return { ok: false, error: error.message };
@@ -127,7 +130,8 @@ export async function toggleEtablissementActif(id: string, actif: boolean): Prom
 
 export async function deleteEtablissement(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "etablissements", id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("etablissements")

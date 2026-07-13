@@ -18,7 +18,11 @@ export async function globalSearch(q: string): Promise<SearchResult[]> {
   if (term.length < 2 || !user.organisation_id) return [];
 
   const supabase = createAdminClient();
-  const like = `%${term}%`;
+  // La syntaxe `or=` de PostgREST réserve , ( ) . " — sans échappement, un terme
+  // comme « Nguema, Jean » produit une 400 et la recherche renvoie 0 résultat.
+  const sain = term.replace(/[,()".%_\\]/g, " ").trim();
+  if (sain.length < 2) return [];
+  const like = `%${sain}%`;
   const scope = user.etablissement_scope_id;
 
   let elevesQuery = supabase

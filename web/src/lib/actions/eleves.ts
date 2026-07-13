@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_ADMINISTRATIFS } from "@/lib/auth";
 import { generateParentPseudo, createParent } from "@/lib/actions/parents";
 
@@ -169,7 +170,8 @@ export async function createEleve(raw: unknown): Promise<EleveActionResult> {
 
 export async function updateEleve(id: string, raw: unknown): Promise<EleveActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "eleves", id);
     const input = eleveUpdateSchema.parse(raw);
     const supabase = createAdminClient();
 
@@ -206,14 +208,24 @@ export async function updateEleve(id: string, raw: unknown): Promise<EleveAction
     if (input.annee_scolaire_id && input.classe_id) {
       const { data: existante } = await supabase
         .from("inscriptions")
-        .select("id")
+        .select("id, statut, decision_fin_annee")
         .eq("eleve_id", id)
         .eq("annee_scolaire_id", input.annee_scolaire_id)
         .maybeSingle();
       if (existante) {
+        // Une inscription clôturée (transféré, exclu, diplômé, abandon…) ne se
+        // « ressuscite » pas par une simple édition de fiche : on ne change que
+        // la classe. Rétablir un élève passe par la clôture d'année.
+        const clôturee =
+          existante.decision_fin_annee !== null ||
+          !["inscrit", "reinscrit"].includes(existante.statut ?? "");
         await supabase
           .from("inscriptions")
-          .update({ classe_id: input.classe_id, statut: "inscrit" })
+          .update(
+            clôturee
+              ? { classe_id: input.classe_id }
+              : { classe_id: input.classe_id, statut: "inscrit" }
+          )
           .eq("id", existante.id);
       } else {
         await supabase.from("inscriptions").insert({
@@ -235,7 +247,8 @@ export async function updateEleve(id: string, raw: unknown): Promise<EleveAction
 
 export async function toggleEleveActif(id: string, actif: boolean): Promise<EleveActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "eleves", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("eleves").update({ actif }).eq("id", id);
     if (error) return { ok: false, error: error.message };
@@ -248,7 +261,8 @@ export async function toggleEleveActif(id: string, actif: boolean): Promise<Elev
 
 export async function deleteEleve(id: string): Promise<EleveActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "eleves", id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("eleves")
@@ -278,6 +292,7 @@ export async function previewParentPseudo(
   nom: string,
   prenom: string
 ): Promise<{ pseudo: string }> {
+  await requireAdmin();
   const pseudo = await generateParentPseudo(nom || "PARENT", prenom || null);
   return { pseudo };
 }

@@ -171,6 +171,12 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
     setPage(0);
   }, [search, activeCycle, etabFilter, statutFilter]);
 
+  // Deep-link (palette ⌘K, top absents) : resynchronise même si on est déjà
+  // sur la page — le composant n'est alors pas remonté.
+  React.useEffect(() => {
+    if (initialSearch !== undefined) setSearch(initialSearch);
+  }, [initialSearch]);
+
   return (
     <>
       <div className="mb-4 flex flex-col sm:flex-row gap-3">

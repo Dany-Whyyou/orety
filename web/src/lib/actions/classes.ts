@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const schema = z.object({
@@ -52,7 +53,8 @@ export async function createClasse(raw: unknown): Promise<ActionResult> {
 
 export async function updateClasse(id: string, raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "classes", id);
     const input = schema.parse(raw);
     const supabase = createAdminClient();
     const { error } = await supabase
@@ -78,7 +80,8 @@ export async function updateClasse(id: string, raw: unknown): Promise<ActionResu
 
 export async function deleteClasse(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "classes", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("classes").update({ archive_le: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };

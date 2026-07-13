@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const schema = z.object({
@@ -122,6 +123,7 @@ export async function createRole(raw: unknown): Promise<ActionResult> {
 export async function updateRole(id: string, raw: unknown): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
+    await assertOwned(admin, "roles", id);
     const input = schema.parse(raw);
     const permErr = await verifierPermissionsAccordables(admin, input.permissions);
     if (permErr) return { ok: false, error: permErr };
@@ -172,7 +174,8 @@ export async function updateRole(id: string, raw: unknown): Promise<ActionResult
 
 export async function deleteRole(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "roles", id);
     const supabase = createAdminClient();
     const { data: role } = await supabase
       .from("roles")

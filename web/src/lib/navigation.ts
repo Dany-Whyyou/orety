@@ -26,6 +26,8 @@ export type NavItem = {
   href: string;
   icon: LucideIcon;
   badge?: string;
+  /** Rôles autorisés ; absent = tout le personnel du dashboard. */
+  roles?: string[];
 };
 
 export type NavSection = {
@@ -41,18 +43,18 @@ export const adminNavigation: NavSection[] = [
   {
     label: "Structure",
     items: [
-      { label: "Établissements", href: "/admin/etablissements", icon: Building2 },
-      { label: "Années scolaires", href: "/admin/annees", icon: Calendar },
-      { label: "Niveaux", href: "/admin/niveaux", icon: GraduationCap },
-      { label: "Classes", href: "/admin/classes", icon: LibraryBig },
-      { label: "Matières", href: "/admin/matieres", icon: BookOpen },
+      { label: "Établissements", href: "/admin/etablissements", icon: Building2, roles: ["super_admin", "admin_org", "directeur_site"] },
+      { label: "Années scolaires", href: "/admin/annees", icon: Calendar, roles: ["super_admin", "admin_org", "directeur_site"] },
+      { label: "Niveaux", href: "/admin/niveaux", icon: GraduationCap, roles: ["super_admin", "admin_org", "directeur_site"] },
+      { label: "Classes", href: "/admin/classes", icon: LibraryBig, roles: ["super_admin", "admin_org", "directeur_site"] },
+      { label: "Matières", href: "/admin/matieres", icon: BookOpen, roles: ["super_admin", "admin_org", "directeur_site"] },
     ],
   },
   {
     label: "Personnel",
     items: [
-      { label: "Professeurs", href: "/admin/profs", icon: UserCheck },
-      { label: "Affectations", href: "/admin/affectations", icon: UserSquare },
+      { label: "Professeurs", href: "/admin/profs", icon: UserCheck, roles: ["super_admin", "admin_org", "directeur_site"] },
+      { label: "Affectations", href: "/admin/affectations", icon: UserSquare, roles: ["super_admin", "admin_org", "directeur_site"] },
     ],
   },
   {
@@ -65,8 +67,8 @@ export const adminNavigation: NavSection[] = [
   {
     label: "Vie scolaire",
     items: [
-      { label: "Évaluations", href: "/admin/evaluations", icon: ClipboardList },
-      { label: "Bulletins", href: "/admin/bulletins", icon: FileText },
+      { label: "Évaluations", href: "/admin/evaluations", icon: ClipboardList, roles: ["super_admin", "admin_org", "directeur_site"] },
+      { label: "Bulletins", href: "/admin/bulletins", icon: FileText, roles: ["super_admin", "admin_org", "directeur_site"] },
       { label: "Présences", href: "/admin/presences", icon: CalendarCheck },
       { label: "Incidents", href: "/admin/incidents", icon: AlertTriangle },
     ],
@@ -76,10 +78,10 @@ export const adminNavigation: NavSection[] = [
     items: [
       { label: "Communications", href: "/admin/communications", icon: Megaphone },
       { label: "Rapports", href: "/admin/rapports", icon: BarChart3 },
-      { label: "Rapport annuel", href: "/admin/rapport-annuel", icon: FileText },
-      { label: "Archives", href: "/admin/archives", icon: Archive },
-      { label: "Rôles & accès", href: "/admin/parametres/roles", icon: Shield },
-      { label: "Paramètres", href: "/admin/parametres", icon: Settings },
+      { label: "Rapport annuel", href: "/admin/rapport-annuel", icon: FileText, roles: ["super_admin", "admin_org", "directeur_site"] },
+      { label: "Archives", href: "/admin/archives", icon: Archive, roles: ["super_admin", "admin_org", "directeur_site"] },
+      { label: "Rôles & accès", href: "/admin/parametres/roles", icon: Shield, roles: ["super_admin", "admin_org", "directeur_site"] },
+      { label: "Paramètres", href: "/admin/parametres", icon: Settings, roles: ["super_admin", "admin_org", "directeur_site"] },
     ],
   },
 ];

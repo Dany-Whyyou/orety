@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_ADMINISTRATIFS } from "@/lib/auth";
 
 const schema = z.object({
@@ -66,6 +67,7 @@ export async function createIncident(raw: unknown): Promise<ActionResult> {
     const input = schema.parse(raw);
     const supabase = createAdminClient();
 
+    await assertOwned(user, "eleves", input.eleve_id);
     const { data: eleve } = await supabase
       .from("eleves")
       .select("etablissement_id")
@@ -111,7 +113,8 @@ export async function createIncident(raw: unknown): Promise<ActionResult> {
 
 export async function updateIncident(id: string, raw: unknown): Promise<ActionResult> {
   try {
-    await requireAuth();
+    const user = await requireAuth();
+    await assertOwned(user, "incidents", id);
     const input = updateSchema.parse(raw);
     const supabase = createAdminClient();
 
@@ -162,7 +165,8 @@ export async function updateIncidentStatut(
   statut: "signale" | "en_cours" | "traite" | "clos"
 ): Promise<ActionResult> {
   try {
-    await requireAuth();
+    const user = await requireAuth();
+    await assertOwned(user, "incidents", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("incidents").update({ statut }).eq("id", id);
     if (error) return { ok: false, error: error.message };
@@ -180,6 +184,7 @@ export async function deleteIncident(id: string): Promise<ActionResult> {
     if (!ROLES_ADMINISTRATIFS.includes(user.role?.code ?? "")) {
       return { ok: false, error: "Seule l'administration peut supprimer un signalement" };
     }
+    await assertOwned(user, "incidents", id);
     const supabase = createAdminClient();
 
     // Conformité : archivage (photos conservées dans le Storage), pas de suppression

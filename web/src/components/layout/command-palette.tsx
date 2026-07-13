@@ -46,6 +46,8 @@ export function CommandPalette({
         const res = await globalSearch(query);
         setResults(res);
         setHighlighted(0);
+      } catch {
+        setResults([]);
       } finally {
         setLoading(false);
       }

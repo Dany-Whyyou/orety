@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const CYCLES = ["prescolaire", "primaire", "college", "lycee"] as const;
@@ -43,7 +44,8 @@ export async function createNiveau(raw: unknown): Promise<ActionResult> {
 
 export async function updateNiveau(id: string, raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "niveaux", id);
     const input = schema.parse(raw);
     const supabase = createAdminClient();
     const { error } = await supabase.from("niveaux").update(input).eq("id", id);
@@ -58,7 +60,8 @@ export async function updateNiveau(id: string, raw: unknown): Promise<ActionResu
 
 export async function deleteNiveau(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "niveaux", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("niveaux").update({ archive_le: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };

@@ -4,7 +4,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, KeyRound, Copy, CheckCheck } from "lucide-react";
+import { Loader2, KeyRound, Copy, CheckCheck, Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -343,7 +343,29 @@ export function CredentialsDialog({
           rapidement ensuite.
         </div>
 
-        <DialogFooter className="pt-2">
+        <DialogFooter className="flex-col gap-2 pt-2 sm:flex-row sm:justify-between">
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm">
+              <a
+                href={`mailto:?subject=${encodeURIComponent("Vos accès Complexe Scolaire Orety")}&body=${encodeURIComponent(
+                  `Bonjour,\n\nVoici vos identifiants d'accès à la plateforme du Complexe Scolaire Orety :\n\nPseudo : ${pseudo}\nMot de passe : ${password}\n\nTéléchargez l'application ou connectez-vous en ligne, puis définissez votre code PIN à la première connexion.\n\nCordialement,\nLe secrétariat`
+                )}`}
+              >
+                <Mail /> Email
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  `🏫 *Complexe Scolaire Orety* — vos accès :\n\n👤 Pseudo : ${pseudo}\n🔑 Mot de passe : ${password}\n\nDéfinissez votre code PIN à la première connexion.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MessageCircle /> WhatsApp
+              </a>
+            </Button>
+          </div>
           <Button variant="default" onClick={() => onOpenChange(false)}>
             J&apos;ai noté
           </Button>

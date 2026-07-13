@@ -175,7 +175,11 @@ export async function updateIncidentStatut(
 
 export async function deleteIncident(id: string): Promise<ActionResult> {
   try {
-    await requireAuth();
+    // Suppression réservée au personnel administratif (pas aux profs)
+    const user = await requireAuth();
+    if (!ROLES_ADMINISTRATIFS.includes(user.role?.code ?? "")) {
+      return { ok: false, error: "Seule l'administration peut supprimer un signalement" };
+    }
     const supabase = createAdminClient();
 
     // Also delete photos from storage

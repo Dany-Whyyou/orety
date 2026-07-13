@@ -40,19 +40,27 @@ export async function createAnnonce(raw: unknown): Promise<ActionResult> {
       return { ok: false, error: "Sélectionnez une classe" };
     }
 
-    const { error } = await supabase.from("annonces").insert({
-      organisation_id: user.organisation_id!,
-      titre: input.titre,
-      contenu: input.contenu,
-      cible: input.cible,
-      etablissement_id: input.cible === "organisation" ? null : input.etablissement_id || null,
-      classe_id: input.cible === "classe" ? input.classe_id : null,
-      auteur_id: user.id,
-      expire_le: input.expire_le || null,
-      publiee: input.publiee,
-      publiee_le: input.publiee ? new Date().toISOString() : null,
-    });
+    const { data: annonce, error } = await supabase
+      .from("annonces")
+      .insert({
+        organisation_id: user.organisation_id!,
+        titre: input.titre,
+        contenu: input.contenu,
+        cible: input.cible,
+        etablissement_id: input.cible === "organisation" ? null : input.etablissement_id || null,
+        classe_id: input.cible === "classe" ? input.classe_id : null,
+        auteur_id: user.id,
+        expire_le: input.expire_le || null,
+        publiee: input.publiee,
+        publiee_le: input.publiee ? new Date().toISOString() : null,
+      })
+      .select("id")
+      .single();
     if (error) return { ok: false, error: error.message };
+
+    if (input.publiee && annonce) {
+      await notifierAnnonce(annonce.id, user.organisation_id!, input.titre, user.id);
+    }
 
     revalidatePath("/admin/communications");
     return { ok: true };
@@ -90,18 +98,64 @@ export async function updateAnnonce(id: string, raw: unknown): Promise<ActionRes
 
 export async function toggleAnnoncePubliee(id: string, publiee: boolean): Promise<ActionResult> {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const supabase = createAdminClient();
-    const { error } = await supabase
+    const { data: annonce, error } = await supabase
       .from("annonces")
       .update({ publiee, publiee_le: publiee ? new Date().toISOString() : null })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id, titre, organisation_id")
+      .single();
     if (error) return { ok: false, error: error.message };
+
+    if (publiee && annonce) {
+      await notifierAnnonce(annonce.id, annonce.organisation_id, annonce.titre, user.id);
+    }
+
     revalidatePath("/admin/communications");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur" };
   }
+}
+
+/**
+ * Notifie le personnel de l'organisation (hors parents, qui consultent les
+ * annonces directement dans l'app mobile). Idempotent par annonce.
+ */
+async function notifierAnnonce(
+  annonceId: string,
+  organisationId: string,
+  titre: string,
+  auteurId: string
+) {
+  const supabase = createAdminClient();
+
+  const { count } = await supabase
+    .from("notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("type", "annonce")
+    .contains("donnees", { annonce_id: annonceId });
+  if ((count ?? 0) > 0) return;
+
+  const { data: destinataires } = await supabase
+    .from("utilisateurs")
+    .select("id, roles:role_id!inner(code)")
+    .eq("organisation_id", organisationId)
+    .eq("actif", true)
+    .neq("id", auteurId)
+    .neq("roles.code", "parent");
+  if (!destinataires?.length) return;
+
+  await supabase.from("notifications").insert(
+    destinataires.map((d) => ({
+      destinataire_id: d.id,
+      type: "annonce" as const,
+      titre: `Annonce : ${titre}`,
+      url_action: "/admin/communications",
+      donnees: { annonce_id: annonceId },
+    }))
+  );
 }
 
 export async function deleteAnnonce(id: string): Promise<ActionResult> {

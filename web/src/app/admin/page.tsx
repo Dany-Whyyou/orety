@@ -1,21 +1,58 @@
-import { GraduationCap, Users, BookOpenCheck, TrendingUp } from "lucide-react";
+import {
+  GraduationCap,
+  Users,
+  BookOpenCheck,
+  TrendingUp,
+  UserPlus,
+  ClipboardList,
+  Megaphone,
+  AlertTriangle,
+} from "lucide-react";
 import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { EnrollmentChart } from "@/components/dashboard/enrollment-chart";
-import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { ActivityFeed, type ActivityItem } from "@/components/dashboard/activity-feed";
 import { TopClasses } from "@/components/dashboard/top-classes";
 import { getDashboardStats } from "@/lib/queries/dashboard";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+function tempsRelatif(dateIso: string): string {
+  const diff = Date.now() - new Date(dateIso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "à l'instant";
+  if (min < 60) return `il y a ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `il y a ${h} h`;
+  const j = Math.floor(h / 24);
+  if (j < 30) return `il y a ${j} j`;
+  return new Date(dateIso).toLocaleDateString("fr-FR");
+}
+
+const activiteVisuel: Record<string, { icon: React.ReactNode; color: string }> = {
+  inscription: { icon: <UserPlus className="size-3.5" />, color: "bg-primary/10 text-primary" },
+  evaluation: { icon: <ClipboardList className="size-3.5" />, color: "bg-accent/10 text-accent" },
+  annonce: { icon: <Megaphone className="size-3.5" />, color: "bg-warning/10 text-warning" },
+  incident: { icon: <AlertTriangle className="size-3.5" />, color: "bg-danger/10 text-danger" },
+};
+
 export default async function DashboardPage() {
-  const stats = await getDashboardStats();
+  const [stats, user] = await Promise.all([getDashboardStats(), getCurrentUser()]);
+
+  const activityItems: ActivityItem[] = stats.activite.map((a) => ({
+    icon: activiteVisuel[a.type]?.icon ?? <TrendingUp className="size-3.5" />,
+    title: a.titre,
+    detail: a.detail,
+    time: tempsRelatif(a.date),
+    color: activiteVisuel[a.type]?.color ?? "bg-muted text-muted-foreground",
+  }));
 
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto">
       <WelcomeBanner
-        firstName="Daniel"
+        firstName={user?.prenom ?? user?.nom ?? user?.pseudo ?? ""}
         anneeLibelle={stats.anneeActive?.libelle ?? null}
         periodeLibelle={stats.periodeActive?.libelle ?? null}
       />
@@ -60,21 +97,19 @@ export default async function DashboardPage() {
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <EnrollmentChart />
+          <EnrollmentChart data={stats.effectifsParMois} />
         </div>
-        <TopClasses />
+        <TopClasses classes={stats.topClasses} />
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <ActivityFeed />
+        <ActivityFeed items={activityItems} />
         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
           <DistributionCard
             segments={stats.repartitionCycle}
             totalEleves={stats.eleves}
           />
-          <SchoolHealthCard
-            hasData={stats.moyenne !== null || stats.tauxPresence !== null}
-          />
+          <SchoolHealthCard sante={stats.sante} />
         </div>
       </section>
     </div>
@@ -154,20 +189,57 @@ function DistributionCard({
   );
 }
 
-function SchoolHealthCard({ hasData }: { hasData: boolean }) {
+function SchoolHealthCard({
+  sante,
+}: {
+  sante: { tauxReussite: number | null; tauxPresence: number | null; tauxBulletinsPublies: number | null };
+}) {
+  const indicateurs = [
+    { label: "Taux de réussite (moy. ≥ 10)", valeur: sante.tauxReussite },
+    { label: "Taux de présence", valeur: sante.tauxPresence },
+    { label: "Bulletins publiés", valeur: sante.tauxBulletinsPublies },
+  ];
+  const mesures = indicateurs.filter((i) => i.valeur !== null);
+  const global =
+    mesures.length > 0
+      ? mesures.reduce((s, i) => s + (i.valeur ?? 0), 0) / mesures.length
+      : null;
+
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/60 backdrop-blur-xl p-5">
       <div aria-hidden className="pointer-events-none absolute -bottom-16 -left-16 size-44 rounded-full bg-primary/8 blur-3xl" />
       <div className="relative">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Santé de l&apos;établissement</p>
         <p className="font-display text-2xl font-bold mt-1">
-          {hasData ? "En cours de mesure" : "À configurer"}
+          {global !== null ? `${global.toFixed(0)} %` : "En attente de données"}
         </p>
       </div>
-      <p className="relative mt-4 text-xs text-muted-foreground leading-relaxed">
-        Les indicateurs (taux de réussite, satisfaction parents, assiduité profs) apparaîtront ici dès que les données
-        scolaires auront été saisies.
-      </p>
+      <div className="relative mt-4 space-y-3">
+        {indicateurs.map((ind) => (
+          <div key={ind.label}>
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="font-medium">{ind.label}</span>
+              <span className="font-mono text-muted-foreground">
+                {ind.valeur !== null ? `${ind.valeur.toFixed(0)} %` : "—"}
+              </span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  ind.valeur === null
+                    ? "bg-muted"
+                    : ind.valeur >= 70
+                      ? "bg-primary"
+                      : ind.valeur >= 40
+                        ? "bg-warning"
+                        : "bg-danger"
+                }`}
+                style={{ width: `${ind.valeur ?? 0}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

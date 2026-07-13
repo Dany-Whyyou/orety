@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEtabScope } from "@/lib/auth";
 
 export type Cycle = "prescolaire" | "primaire" | "college" | "lycee";
 
@@ -21,11 +22,13 @@ export type NiveauGroup = {
 
 export async function getNiveaux(): Promise<NiveauGroup[]> {
   const supabase = createAdminClient();
+  const scope = await getEtabScope();
 
-  const { data, error } = await supabase
+  const base = supabase
     .from("niveaux")
     .select("id, code, libelle, cycle, ordre, etablissement_id, etablissements(nom)")
     .order("ordre");
+  const { data, error } = await (scope ? base.eq("etablissement_id", scope) : base);
 
   if (error) {
     console.error("getNiveaux:", error);

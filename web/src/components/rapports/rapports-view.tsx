@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Award,
   BarChart3,
+  Download,
 } from "lucide-react";
 import {
   Area,
@@ -27,9 +28,47 @@ import {
   YAxis,
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn, initials, formatNumber } from "@/lib/utils";
 import type { RapportData } from "@/lib/queries/rapports";
+import { toast } from "sonner";
+
+function exportRapportCsv(data: RapportData) {
+  const esc = (v: string | number | null | undefined) =>
+    `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lignes: string[] = [];
+
+  lignes.push(esc("RAPPORT ORETY — " + new Date().toLocaleDateString("fr-FR")));
+  lignes.push("");
+  lignes.push(["Indicateur", "Valeur"].map(esc).join(";"));
+  lignes.push([esc("Élèves"), data.totalEleves].join(";"));
+  lignes.push([esc("Professeurs"), data.totalProfs].join(";"));
+  lignes.push([esc("Classes"), data.totalClasses].join(";"));
+  lignes.push([esc("Évaluations"), data.totalEvaluations].join(";"));
+  lignes.push([esc("Bulletins"), data.totalBulletins].join(";"));
+  lignes.push([
+    esc("Moyenne générale"),
+    data.moyenneGenerale !== null ? data.moyenneGenerale.toFixed(2) : "",
+  ].join(";"));
+  lignes.push("");
+  lignes.push(esc("MOYENNES PAR CLASSE"));
+  lignes.push(["Classe", "Niveau", "Cycle", "Effectif", "Moyenne"].map(esc).join(";"));
+  data.moyennesParClasse.forEach((c) => {
+    lignes.push(
+      [esc(c.classe_nom), esc(c.niveau_libelle), esc(c.cycle), c.effectif, c.moyenne.toFixed(2)].join(";")
+    );
+  });
+
+  const csv = "﻿" + lignes.join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `rapport-orety-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success("Rapport exporté en CSV");
+}
 
 const CYCLE_COLORS: Record<string, string> = {
   prescolaire: "hsl(var(--warning))",
@@ -51,6 +90,12 @@ export function RapportsView({ data }: Props) {
 
   return (
     <>
+      <div className="mb-4 flex justify-end">
+        <Button variant="outline" size="sm" disabled={!hasData} onClick={() => exportRapportCsv(data)}>
+          <Download /> Exporter CSV
+        </Button>
+      </div>
+
       {/* KPIs */}
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         <Kpi label="Élèves" value={data.totalEleves} icon={<Users className="size-4" />} delay={0} />

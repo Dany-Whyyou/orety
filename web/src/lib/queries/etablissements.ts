@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEtabScope } from "@/lib/auth";
 
 export type Cycle = "prescolaire" | "primaire" | "college" | "lycee";
 
@@ -21,11 +22,13 @@ export type EtablissementListItem = {
 
 export async function getEtablissements(): Promise<EtablissementListItem[]> {
   const supabase = createAdminClient();
+  const scope = await getEtabScope();
 
-  const { data, error } = await supabase
+  const base = supabase
     .from("etablissements")
     .select("*")
     .order("nom");
+  const { data, error } = await (scope ? base.eq("id", scope) : base);
 
   if (error) {
     console.error("getEtablissements:", error);

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Sidebar, SidebarProvider } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { getCurrentUser, ROLES_ADMINISTRATIFS } from "@/lib/auth";
+import { getMesNotifications } from "@/lib/actions/notifications";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -9,6 +10,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Le dashboard est réservé au personnel administratif : un parent ou un prof
   // authentifié ne doit pas pouvoir afficher les pages (qui lisent via service role).
   if (!ROLES_ADMINISTRATIFS.includes(user.role?.code ?? "")) redirect("/");
+
+  const { items: notifications, non_lues } = await getMesNotifications();
 
   return (
     <SidebarProvider>
@@ -30,7 +33,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               prenom: user.prenom ?? undefined,
               role: user.role?.libelle,
               avatar: user.photo_url ?? undefined,
+              isSuperAdmin: user.role?.code === "super_admin",
             }}
+            notifications={notifications}
+            nonLues={non_lues}
           />
           <main className="flex-1 p-6 md:p-8">{children}</main>
         </div>

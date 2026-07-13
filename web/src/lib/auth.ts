@@ -32,6 +32,16 @@ export async function requireRole(roles: readonly string[]): Promise<CurrentUser
   return user;
 }
 
+/**
+ * Périmètre établissement de l'utilisateur courant.
+ * null = accès à tous les sites de l'organisation ; sinon, id de l'unique
+ * établissement autorisé (cas du directeur_site).
+ */
+export async function getEtabScope(): Promise<string | null> {
+  const user = await getCurrentUser();
+  return user?.etablissement_scope_id ?? null;
+}
+
 /** Convertit un pseudo en email technique interne pour Supabase Auth. */
 export function pseudoToEmail(pseudo: string) {
   return `${pseudo.trim().toLowerCase()}@orety.internal`;

@@ -268,6 +268,7 @@ export async function saveNote(raw: unknown): Promise<ActionResult> {
         })
         .eq("id", existing.id);
       if (error) return { ok: false, error: error.message };
+      revalidatePath("/admin/evaluations");
       return { ok: true, id: existing.id };
     }
 
@@ -286,6 +287,7 @@ export async function saveNote(raw: unknown): Promise<ActionResult> {
       .select("id")
       .single();
     if (error) return { ok: false, error: error.message };
+    revalidatePath("/admin/evaluations");
     return { ok: true, id: data.id };
   } catch (e) {
     if (e instanceof z.ZodError) return { ok: false, error: e.issues[0]?.message ?? "Validation" };

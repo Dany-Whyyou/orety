@@ -54,6 +54,7 @@ export function AnneesList({ annees, etablissements }: Props) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<AnneeListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<AnneeListItem | null>(null);
+  const [deleteConfigTarget, setDeleteConfigTarget] = React.useState<string | null>(null);
   const [configTarget, setConfigTarget] = React.useState<{
     anneeId: string;
     anneeLibelle: string;
@@ -75,10 +76,13 @@ export function AnneesList({ annees, etablissements }: Props) {
     } else toast.error(res.error);
   }
 
-  async function onDeleteConfig(configId: string) {
-    const res = await deleteConfigBulletin(configId);
-    if (res.ok) toast.success("Configuration supprimée");
-    else toast.error(res.error);
+  async function onDeleteConfig() {
+    if (!deleteConfigTarget) return;
+    const res = await deleteConfigBulletin(deleteConfigTarget);
+    if (res.ok) {
+      toast.success("Configuration supprimée");
+      setDeleteConfigTarget(null);
+    } else toast.error(res.error);
   }
 
   return (
@@ -254,7 +258,7 @@ export function AnneesList({ annees, etablissements }: Props) {
                                 <Pencil className="size-3.5" />
                               </button>
                               <button
-                                onClick={() => onDeleteConfig(c.id)}
+                                onClick={() => setDeleteConfigTarget(c.id)}
                                 className="size-7 rounded-md hover:bg-danger/10 flex items-center justify-center text-muted-foreground hover:text-danger transition-colors"
                               >
                                 <Trash2 className="size-3.5" />
@@ -299,6 +303,27 @@ export function AnneesList({ annees, etablissements }: Props) {
           config={configTarget.config}
         />
       )}
+
+      <Dialog open={!!deleteConfigTarget} onOpenChange={(o) => !o && setDeleteConfigTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Supprimer la configuration de bulletins ?</DialogTitle>
+            <DialogDescription>
+              ⚠️ Cette suppression entraîne celle des <strong>périodes scolaires</strong> associées,
+              et en cascade de <strong>toutes les évaluations, notes et bulletins</strong> de ces
+              périodes. Cette action est <strong>irréversible</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteConfigTarget(null)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={onDeleteConfig}>
+              <Trash2 /> Supprimer définitivement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-md">

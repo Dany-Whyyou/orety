@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEtabScope } from "@/lib/auth";
 
 export type IncidentType = "sante" | "comportement" | "securite" | "materiel" | "academique" | "autre";
 export type IncidentGravite = "info" | "mineur" | "moyen" | "grave";
@@ -34,8 +35,9 @@ export type IncidentItem = {
 
 export async function getIncidents(): Promise<IncidentItem[]> {
   const supabase = createAdminClient();
+  const scope = await getEtabScope();
 
-  const { data, error } = await supabase
+  const base = supabase
     .from("incidents")
     .select(
       `id, type, gravite, statut, titre, description, date_incident, lieu, photos,
@@ -46,6 +48,8 @@ export async function getIncidents(): Promise<IncidentItem[]> {
        auteur:auteur_id(pseudo, nom, prenom, roles(code))`
     )
     .order("date_incident", { ascending: false });
+
+  const { data, error } = await (scope ? base.eq("etablissement_id", scope) : base);
 
   if (error) {
     console.error("getIncidents:", error.message, error.code, error.details);

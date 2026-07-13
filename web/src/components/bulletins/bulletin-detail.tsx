@@ -14,6 +14,8 @@ import {
   Edit3,
   Save,
   Loader2,
+  FileDown,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,7 @@ import {
   togglePublieBulletin,
   updateBulletinAppreciation,
   updateBulletinMatiere,
+  enregistrerBulletinPdf,
 } from "@/lib/actions/bulletins";
 import type { BulletinDetail } from "@/lib/queries/bulletins";
 
@@ -93,6 +96,27 @@ export function BulletinDetailView({ bulletin }: Props) {
     window.print();
   }
 
+  const [pdfBusy, setPdfBusy] = React.useState(false);
+  const [pdfUrl, setPdfUrl] = React.useState<string | null>(bulletin.pdf_url);
+
+  async function onGenererPdf() {
+    setPdfBusy(true);
+    try {
+      const { genererBulletinPdf } = await import("@/lib/bulletin/pdf");
+      const { base64, filename } = genererBulletinPdf(bulletin);
+      const res = await enregistrerBulletinPdf(bulletin.id, base64, filename);
+      if (res.ok && res.url) {
+        setPdfUrl(res.url);
+        toast.success("PDF généré et archivé");
+        window.open(res.url, "_blank", "noopener");
+      } else if (!res.ok) {
+        toast.error(res.error);
+      }
+    } finally {
+      setPdfBusy(false);
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Toolbar (hidden when printing) */}
@@ -122,8 +146,19 @@ export function BulletinDetailView({ bulletin }: Props) {
               <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
                 <Edit3 /> Modifier les appréciations
               </Button>
-              <Button variant="gradient" size="sm" onClick={onPrint}>
-                <Printer /> Imprimer / PDF
+              <Button variant="outline" size="sm" onClick={onPrint}>
+                <Printer /> Imprimer
+              </Button>
+              {pdfUrl && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
+                    <FileText /> Voir le PDF
+                  </a>
+                </Button>
+              )}
+              <Button variant="gradient" size="sm" onClick={onGenererPdf} disabled={pdfBusy}>
+                {pdfBusy ? <Loader2 className="size-4 animate-spin" /> : <FileDown />}
+                {pdfUrl ? "Regénérer le PDF" : "Générer le PDF"}
               </Button>
             </>
           )}

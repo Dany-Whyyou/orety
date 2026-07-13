@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEtabScope } from "@/lib/auth";
 
 export type MatiereItem = {
   id: string;
@@ -22,17 +23,21 @@ export type MatiereGroup = {
 
 export async function getMatieres(): Promise<MatiereGroup[]> {
   const supabase = createAdminClient();
+  const scope = await getEtabScope();
+
+  const matieresBase = supabase
+    .from("matieres")
+    .select("id, code, nom, couleur, ordre, actif, etablissement_id, etablissements(nom)")
+    .order("ordre");
+  const niveauxBase = supabase
+    .from("niveaux")
+    .select("id, libelle, cycle, ordre, etablissement_id")
+    .order("ordre");
 
   const [{ data: matieresData }, { data: niveauxData }, { data: coefsData }] =
     await Promise.all([
-      supabase
-        .from("matieres")
-        .select("id, code, nom, couleur, ordre, actif, etablissement_id, etablissements(nom)")
-        .order("ordre"),
-      supabase
-        .from("niveaux")
-        .select("id, libelle, cycle, ordre, etablissement_id")
-        .order("ordre"),
+      scope ? matieresBase.eq("etablissement_id", scope) : matieresBase,
+      scope ? niveauxBase.eq("etablissement_id", scope) : niveauxBase,
       supabase.from("coefficients_matiere").select("matiere_id, niveau_id, coefficient"),
     ]);
 

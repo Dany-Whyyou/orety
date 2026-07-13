@@ -34,10 +34,40 @@ async function requireAdmin() {
   return user;
 }
 
+/**
+ * Garde-fou du cahier des charges : un créateur ne peut accorder que des
+ * permissions qu'il possède lui-même (le super_admin n'est pas limité).
+ */
+async function verifierPermissionsAccordables(
+  admin: Awaited<ReturnType<typeof requireAdmin>>,
+  permissions: string[]
+): Promise<string | null> {
+  if (admin.role?.code === "super_admin" || permissions.length === 0) return null;
+  const supabase = createAdminClient();
+  const { data: moi } = await supabase
+    .from("utilisateurs")
+    .select("role_id")
+    .eq("id", admin.id)
+    .single();
+  if (!moi?.role_id) return "Impossible de vérifier vos permissions";
+  const { data } = await supabase
+    .from("role_permissions")
+    .select("permission_code")
+    .eq("role_id", moi.role_id);
+  const possedees = new Set((data ?? []).map((p) => p.permission_code));
+  const manquantes = permissions.filter((p) => !possedees.has(p));
+  if (manquantes.length > 0) {
+    return `Vous ne pouvez pas accorder des permissions que vous ne possédez pas : ${manquantes.join(", ")}`;
+  }
+  return null;
+}
+
 export async function createRole(raw: unknown): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
     const input = schema.parse(raw);
+    const permErr = await verifierPermissionsAccordables(admin, input.permissions);
+    if (permErr) return { ok: false, error: permErr };
     if (input.niveau_hierarchique >= (admin.role?.niveau_hierarchique ?? 0)) {
       return {
         ok: false,
@@ -93,6 +123,8 @@ export async function updateRole(id: string, raw: unknown): Promise<ActionResult
   try {
     const admin = await requireAdmin();
     const input = schema.parse(raw);
+    const permErr = await verifierPermissionsAccordables(admin, input.permissions);
+    if (permErr) return { ok: false, error: permErr };
     const supabase = createAdminClient();
 
     // Fetch role to verify not system

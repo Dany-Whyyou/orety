@@ -241,3 +241,42 @@ export async function updateBulletinMatiere(
     return { ok: false, error: e instanceof Error ? e.message : "Erreur" };
   }
 }
+
+/**
+ * Enregistre le PDF généré côté client dans le Storage (bucket `bulletins`)
+ * et renseigne `pdf_url` sur le bulletin.
+ */
+export async function enregistrerBulletinPdf(
+  bulletinId: string,
+  pdfBase64: string,
+  filename: string
+): Promise<ActionResult & { url?: string }> {
+  try {
+    await requireAdmin();
+    if (!pdfBase64 || pdfBase64.length > 7_000_000) {
+      return { ok: false, error: "PDF invalide ou trop volumineux" };
+    }
+    const supabase = createAdminClient();
+
+    const chemin = `${bulletinId}/${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const contenu = Buffer.from(pdfBase64, "base64");
+
+    const { error: upErr } = await supabase.storage
+      .from("bulletins")
+      .upload(chemin, contenu, { contentType: "application/pdf", upsert: true });
+    if (upErr) return { ok: false, error: upErr.message };
+
+    const { data: pub } = supabase.storage.from("bulletins").getPublicUrl(chemin);
+
+    const { error } = await supabase
+      .from("bulletins")
+      .update({ pdf_url: pub.publicUrl })
+      .eq("id", bulletinId);
+    if (error) return { ok: false, error: error.message };
+
+    revalidatePath("/admin/bulletins");
+    return { ok: true, url: pub.publicUrl };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur" };
+  }
+}

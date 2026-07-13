@@ -89,9 +89,37 @@ const filters = [
   { key: "lycee", label: "Lycée" },
 ] as const;
 
+const PAGE_SIZE = 25;
+
+function exportCsv(rows: EleveListItem[]) {
+  const header = [
+    "Matricule", "Nom", "Prénom", "Sexe", "Date de naissance", "Établissement",
+    "Classe", "Cycle", "Clé parentale", "Statut",
+  ];
+  const escape = (v: string | null | undefined) => `"${(v ?? "").replace(/"/g, '""')}"`;
+  const lines = rows.map((e) =>
+    [
+      e.matricule, e.nom, e.prenom, e.sexe ?? "", e.date_naissance ?? "",
+      e.etablissement_nom, e.classe ?? "", cycleLabels[e.cycle] ?? e.cycle,
+      e.cle_parentale, e.actif ? "Actif" : "Suspendu",
+    ].map(escape).join(";")
+  );
+  const csv = "﻿" + [header.map(escape).join(";"), ...lines].join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `eleves-orety-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function ElevesTable({ eleves, etablissements, classes, annees, parents }: Props) {
   const [activeCycle, setActiveCycle] = React.useState<string>("tous");
   const [search, setSearch] = React.useState("");
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const [etabFilter, setEtabFilter] = React.useState<string>("tous");
+  const [statutFilter, setStatutFilter] = React.useState<string>("tous");
+  const [page, setPage] = React.useState(0);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<EleveListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<EleveListItem | null>(null);
@@ -118,6 +146,9 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents }
 
   const filtered = eleves.filter((e) => {
     const matchCycle = activeCycle === "tous" || e.cycle === activeCycle;
+    const matchEtab = etabFilter === "tous" || e.etablissement_id === etabFilter;
+    const matchStatut =
+      statutFilter === "tous" || (statutFilter === "actif" ? e.actif : !e.actif);
     const s = search.toLowerCase().trim();
     const matchSearch =
       !s ||
@@ -126,8 +157,18 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents }
       e.matricule.toLowerCase().includes(s) ||
       (e.classe ?? "").toLowerCase().includes(s) ||
       e.cle_parentale.toLowerCase().includes(s);
-    return matchCycle && matchSearch;
+    return matchCycle && matchEtab && matchStatut && matchSearch;
   });
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount - 1);
+  const pageRows = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const nbFiltresActifs = (etabFilter !== "tous" ? 1 : 0) + (statutFilter !== "tous" ? 1 : 0);
+
+  // Retour page 1 quand un filtre change
+  React.useEffect(() => {
+    setPage(0);
+  }, [search, activeCycle, etabFilter, statutFilter]);
 
   return (
     <>
@@ -166,10 +207,22 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents }
           })}
         </div>
 
-        <Button variant="outline" size="default">
-          <Filter /> Filtres
+        <Button
+          variant={nbFiltresActifs > 0 ? "secondary" : "outline"}
+          size="default"
+          onClick={() => setFiltersOpen((v) => !v)}
+        >
+          <Filter /> Filtres{nbFiltresActifs > 0 && ` (${nbFiltresActifs})`}
         </Button>
-        <Button variant="outline" size="default" disabled={eleves.length === 0}>
+        <Button
+          variant="outline"
+          size="default"
+          disabled={filtered.length === 0}
+          onClick={() => {
+            exportCsv(filtered);
+            toast.success(`${filtered.length} élève${filtered.length > 1 ? "s" : ""} exporté${filtered.length > 1 ? "s" : ""} en CSV`);
+          }}
+        >
           <Download /> Exporter
         </Button>
         <Button
@@ -181,6 +234,47 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents }
           <Plus /> Nouvel élève
         </Button>
       </div>
+
+      {filtersOpen && (
+        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-border/50 bg-card/60 p-4 backdrop-blur sm:flex-row sm:items-end">
+          <div className="flex-1 space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">Établissement</p>
+            <select
+              value={etabFilter}
+              onChange={(e) => setEtabFilter(e.target.value)}
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="tous">Tous les établissements</option>
+              {etablissements.map((et) => (
+                <option key={et.id} value={et.id}>{et.nom}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1 space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">Statut</p>
+            <select
+              value={statutFilter}
+              onChange={(e) => setStatutFilter(e.target.value)}
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="tous">Tous</option>
+              <option value="actif">Actifs</option>
+              <option value="inactif">Suspendus</option>
+            </select>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={nbFiltresActifs === 0}
+            onClick={() => {
+              setEtabFilter("tous");
+              setStatutFilter("tous");
+            }}
+          >
+            Réinitialiser
+          </Button>
+        </div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -223,7 +317,7 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents }
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((e, i) => (
+                  {pageRows.map((e, i) => (
                     <motion.tr
                       key={e.id}
                       initial={{ opacity: 0, y: 4 }}
@@ -308,12 +402,23 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents }
               <span>
                 {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
                 {filtered.length !== eleves.length && ` sur ${eleves.length}`}
+                {pageCount > 1 && ` — page ${currentPage + 1}/${pageCount}`}
               </span>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" disabled>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={currentPage === 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                >
                   Précédent
                 </Button>
-                <Button variant="outline" size="sm" disabled={filtered.length < 50}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= pageCount - 1}
+                  onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                >
                   Suivant
                 </Button>
               </div>

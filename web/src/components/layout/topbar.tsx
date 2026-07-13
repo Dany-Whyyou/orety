@@ -15,6 +15,7 @@ import {
   UserCog,
   Check,
   Crown,
+  Menu,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { initials, cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CommandPalette } from "./command-palette";
+import { useSidebar } from "./sidebar";
 import { marquerToutLu, type NotificationItem } from "@/lib/actions/notifications";
 
 type TopbarProps = {
@@ -61,7 +63,8 @@ export function Topbar({ user, notifications, nonLues }: TopbarProps) {
 
   return (
     <header className="sticky top-0 z-20 h-16 border-b border-border/60 bg-background/70 backdrop-blur-xl">
-      <div className="h-full px-6 flex items-center gap-4">
+      <div className="h-full px-4 sm:px-6 flex items-center gap-3 sm:gap-4">
+        <MenuMobile />
         <SearchBar onOpen={() => setPaletteOpen(true)} />
 
         <div className="ml-auto flex items-center gap-2">
@@ -73,6 +76,20 @@ export function Topbar({ user, notifications, nonLues }: TopbarProps) {
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </header>
+  );
+}
+
+function MenuMobile() {
+  const { toggleMobile } = useSidebar();
+  return (
+    <button
+      type="button"
+      onClick={toggleMobile}
+      aria-label="Ouvrir le menu"
+      className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:hidden"
+    >
+      <Menu className="size-5" />
+    </button>
   );
 }
 

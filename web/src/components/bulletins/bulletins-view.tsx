@@ -89,10 +89,13 @@ export function BulletinsView({ bulletins, classes, periodes, annees }: Props) {
   const [cycleFilter, setCycleFilter] = React.useState<string>("tous");
   const [generateOpen, setGenerateOpen] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<BulletinListItem | null>(null);
+  const [archiving, setArchiving] = React.useState(false);
 
   async function onDelete() {
     if (!deleteTarget) return;
+    setArchiving(true);
     const res = await deleteBulletin(deleteTarget.id);
+    setArchiving(false);
     if (res.ok) {
       toast.success("Bulletin archivé");
       setDeleteTarget(null);
@@ -305,14 +308,14 @@ export function BulletinsView({ bulletins, classes, periodes, annees }: Props) {
             <DialogTitle>Archiver le bulletin ?</DialogTitle>
             <DialogDescription>
               Le bulletin de <strong>{deleteTarget?.eleve_prenom} {deleteTarget?.eleve_nom}</strong>{" "}
-              sera supprimé. Vous pourrez le régénérer.
+              sera archivé. Vous pourrez le régénérer.
              Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={onDelete}>
+            <Button variant="destructive" onClick={onDelete} disabled={archiving}>
               <Trash2 /> Archiver
             </Button>
           </DialogFooter>

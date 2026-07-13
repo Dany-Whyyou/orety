@@ -15,6 +15,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 type SidebarContextType = {
   collapsed: boolean;
   toggle: () => void;
+  mobileOpen: boolean;
+  toggleMobile: () => void;
+  closeMobile: () => void;
 };
 
 const SidebarContext = React.createContext<SidebarContextType | null>(null);
@@ -27,9 +30,12 @@ export function useSidebar() {
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
   const toggle = React.useCallback(() => setCollapsed((c) => !c), []);
+  const toggleMobile = React.useCallback(() => setMobileOpen((o) => !o), []);
+  const closeMobile = React.useCallback(() => setMobileOpen(false), []);
   return (
-    <SidebarContext.Provider value={{ collapsed, toggle }}>
+    <SidebarContext.Provider value={{ collapsed, toggle, mobileOpen, toggleMobile, closeMobile }}>
       {children}
     </SidebarContext.Provider>
   );
@@ -37,7 +43,12 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
 export function Sidebar({ roleCode }: { roleCode?: string }) {
   const pathname = usePathname();
-  const { collapsed, toggle } = useSidebar();
+  const { collapsed, toggle, mobileOpen, closeMobile } = useSidebar();
+
+  // Ferme le tiroir à chaque navigation (mobile)
+  React.useEffect(() => {
+    closeMobile();
+  }, [pathname, closeMobile]);
 
   const isActive = (href: string) => {
     if (href === "/admin") return pathname === "/admin";
@@ -46,11 +57,26 @@ export function Sidebar({ roleCode }: { roleCode?: string }) {
 
   return (
     <TooltipProvider delayDuration={0}>
+      {/* Voile derrière le tiroir (mobile) */}
+      {mobileOpen && (
+        <div
+          aria-hidden
+          onClick={closeMobile}
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+        />
+      )}
       <motion.aside
         initial={false}
         animate={{ width: collapsed ? 76 : 280 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="sticky top-0 h-screen border-r border-sidebar-border/60 bg-sidebar/90 backdrop-blur-xl flex flex-col z-30"
+        className={cn(
+          "border-r border-sidebar-border/60 bg-sidebar/90 backdrop-blur-xl flex flex-col",
+          // Mobile : tiroir hors écran, largeur fixe
+          "fixed inset-y-0 left-0 z-50 !w-[280px] transition-transform duration-300 md:transition-none",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+          // Desktop : colonne collante, largeur animée
+          "md:sticky md:top-0 md:h-screen md:z-30 md:translate-x-0 md:!w-auto"
+        )}
       >
         {/* Ambient gradient background */}
         <div

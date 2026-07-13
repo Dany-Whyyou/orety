@@ -55,6 +55,7 @@ export function ProfsList({ profs, etablissements, matieres }: Props) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<ProfListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<ProfListItem | null>(null);
+  const [archiving, setArchiving] = React.useState(false);
   const [credentials, setCredentials] = React.useState<{ pseudo: string; password: string } | null>(null);
   const [togglePending, setTogglePending] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");
@@ -69,7 +70,9 @@ export function ProfsList({ profs, etablissements, matieres }: Props) {
 
   async function onDelete() {
     if (!deleteTarget) return;
+    setArchiving(true);
     const res = await deleteProf(deleteTarget.utilisateur_id);
+    setArchiving(false);
     if (res.ok) {
       toast.success("Professeur archivé");
       setDeleteTarget(null);
@@ -288,7 +291,7 @@ export function ProfsList({ profs, etablissements, matieres }: Props) {
             <DialogTitle>Archiver le professeur ?</DialogTitle>
             <DialogDescription>
               Le compte de <strong>{deleteTarget?.prenom} {deleteTarget?.nom}</strong> (
-              <span className="font-mono">{deleteTarget?.pseudo}</span>) sera supprimé
+              <span className="font-mono">{deleteTarget?.pseudo}</span>) sera archivé
               définitivement, ainsi que ses affectations.
              Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
@@ -296,7 +299,7 @@ export function ProfsList({ profs, etablissements, matieres }: Props) {
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={onDelete}>
+            <Button variant="destructive" onClick={onDelete} disabled={archiving}>
               <Trash2 /> Archiver
             </Button>
           </DialogFooter>

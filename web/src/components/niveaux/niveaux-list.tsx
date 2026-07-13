@@ -57,10 +57,13 @@ export function NiveauxList({ groups, etablissements }: Props) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<NiveauItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<NiveauItem | null>(null);
+  const [archiving, setArchiving] = React.useState(false);
 
   async function onDelete() {
     if (!deleteTarget) return;
+    setArchiving(true);
     const res = await deleteNiveau(deleteTarget.id);
+    setArchiving(false);
     if (res.ok) {
       toast.success("Niveau archivé");
       setDeleteTarget(null);
@@ -200,7 +203,7 @@ export function NiveauxList({ groups, etablissements }: Props) {
           <DialogHeader>
             <DialogTitle>Archiver le niveau ?</DialogTitle>
             <DialogDescription>
-              Le niveau <strong>{deleteTarget?.libelle}</strong> sera supprimé. Les classes et
+              Le niveau <strong>{deleteTarget?.libelle}</strong> sera archivé. Les classes et
               coefficients associés seront affectés.
              Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
@@ -208,7 +211,7 @@ export function NiveauxList({ groups, etablissements }: Props) {
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={onDelete}>
+            <Button variant="destructive" onClick={onDelete} disabled={archiving}>
               <Trash2 /> Archiver
             </Button>
           </DialogFooter>

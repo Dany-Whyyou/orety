@@ -50,6 +50,7 @@ export function ParentsList({ parents }: Props) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<ParentListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<ParentListItem | null>(null);
+  const [archiving, setArchiving] = React.useState(false);
   const [credentials, setCredentials] = React.useState<{ pseudo: string; password: string } | null>(
     null
   );
@@ -63,7 +64,9 @@ export function ParentsList({ parents }: Props) {
 
   async function onDelete() {
     if (!deleteTarget) return;
+    setArchiving(true);
     const res = await deleteParent(deleteTarget.utilisateur_id);
+    setArchiving(false);
     if (res.ok) {
       toast.success("Compte parent archivé");
       setDeleteTarget(null);
@@ -265,7 +268,7 @@ export function ParentsList({ parents }: Props) {
           <DialogHeader>
             <DialogTitle>Archiver le compte parent ?</DialogTitle>
             <DialogDescription>
-              Le compte <code className="font-mono">{deleteTarget?.pseudo}</code> sera supprimé.
+              Le compte <code className="font-mono">{deleteTarget?.pseudo}</code> sera archivé.
               Action impossible si des enfants sont encore liés à cette clé parentale.
              Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
@@ -273,7 +276,7 @@ export function ParentsList({ parents }: Props) {
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={onDelete}>
+            <Button variant="destructive" onClick={onDelete} disabled={archiving}>
               <Trash2 /> Archiver
             </Button>
           </DialogFooter>

@@ -301,7 +301,7 @@ export function EvaluationsView({
               <DialogHeader>
                 <DialogTitle>Archiver l&apos;évaluation ?</DialogTitle>
                 <DialogDescription>
-                  <strong>{deleteEval?.titre}</strong> et toutes ses notes seront supprimées.
+                  <strong>{deleteEval?.titre}</strong> et toutes ses notes seront archivées.
                  Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
               </DialogHeader>
               <DialogFooter>
@@ -347,7 +347,7 @@ export function EvaluationsView({
           <DialogHeader>
             <DialogTitle>Archiver le type ?</DialogTitle>
             <DialogDescription>
-              Le type <strong>{deleteType?.libelle}</strong> sera supprimé.
+              Le type <strong>{deleteType?.libelle}</strong> sera archivé.
               {deleteType && deleteType.nb_utilisations > 0 && (
                 <span className="block mt-2 text-danger">
                   ⚠ {deleteType.nb_utilisations} évaluation{deleteType.nb_utilisations > 1 ? "s" : ""}{" "}

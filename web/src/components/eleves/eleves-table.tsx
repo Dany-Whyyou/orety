@@ -124,6 +124,7 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<EleveListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<EleveListItem | null>(null);
+  const [archiving, setArchiving] = React.useState(false);
   const [credentials, setCredentials] = React.useState<{
     pseudo: string;
     password: string;
@@ -132,7 +133,9 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
 
   async function onDelete() {
     if (!deleteTarget) return;
+    setArchiving(true);
     const res = await deleteEleve(deleteTarget.id);
+    setArchiving(false);
     if (res.ok) {
       toast.success("Élève archivé");
       setDeleteTarget(null);
@@ -467,7 +470,7 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
           <DialogHeader>
             <DialogTitle>Archiver l&apos;élève ?</DialogTitle>
             <DialogDescription>
-              <strong>{deleteTarget?.prenom} {deleteTarget?.nom}</strong> sera supprimé, ainsi que
+              <strong>{deleteTarget?.prenom} {deleteTarget?.nom}</strong> sera archivé, ainsi que
               ses inscriptions et notes. Le compte parent rattaché (
               <code className="font-mono">{deleteTarget?.cle_parentale}</code>) n&apos;est
               <strong> pas</strong> supprimé.
@@ -477,7 +480,7 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={onDelete}>
+            <Button variant="destructive" onClick={onDelete} disabled={archiving}>
               <Trash2 /> Archiver
             </Button>
           </DialogFooter>

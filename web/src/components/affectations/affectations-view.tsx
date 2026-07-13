@@ -369,7 +369,7 @@ export function AffectationsView({ affectations, profs, classes, matieres, annee
           <DialogHeader>
             <DialogTitle>Supprimer l&apos;affectation ?</DialogTitle>
             <DialogDescription>
-              L&apos;affectation sera supprimée. Les notes et présences déjà saisies pour cette
+              L&apos;affectation sera archivée. Les notes et présences déjà saisies pour cette
               classe × matière ne seront pas affectées.
             </DialogDescription>
           </DialogHeader>

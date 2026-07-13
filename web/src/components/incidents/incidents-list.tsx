@@ -92,6 +92,7 @@ export function IncidentsList({ incidents, eleves }: Props) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<IncidentItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<IncidentItem | null>(null);
+  const [archiving, setArchiving] = React.useState(false);
   const [photoViewer, setPhotoViewer] = React.useState<{ photos: string[]; index: number } | null>(null);
   const [search, setSearch] = React.useState("");
   const [typeFilter, setTypeFilter] = React.useState<string>("tous");
@@ -99,7 +100,9 @@ export function IncidentsList({ incidents, eleves }: Props) {
 
   async function onDelete() {
     if (!deleteTarget) return;
+    setArchiving(true);
     const res = await deleteIncident(deleteTarget.id);
+    setArchiving(false);
     if (res.ok) {
       toast.success("Signalement archivé");
       setDeleteTarget(null);
@@ -295,7 +298,7 @@ export function IncidentsList({ incidents, eleves }: Props) {
           <DialogHeader>
             <DialogTitle>Archiver le signalement ?</DialogTitle>
             <DialogDescription>
-              <strong>{deleteTarget?.titre}</strong> et ses photos seront supprimés
+              <strong>{deleteTarget?.titre}</strong> et ses photos seront archivés
               définitivement. Le parent ne sera pas re-notifié.
              Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
@@ -303,7 +306,7 @@ export function IncidentsList({ incidents, eleves }: Props) {
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={onDelete}>
+            <Button variant="destructive" onClick={onDelete} disabled={archiving}>
               <Trash2 /> Archiver
             </Button>
           </DialogFooter>

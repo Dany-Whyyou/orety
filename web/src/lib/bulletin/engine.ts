@@ -1,5 +1,12 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  calculerRangs,
+  moyenneAnnuelle as calcMoyenneAnnuelle,
+  moyenneDeClasse,
+  moyenneGenerale as calcMoyenneGenerale,
+  moyenneMatiere as calcMoyenneMatiere,
+} from "./calcul";
 
 /**
  * Moteur de calcul de bulletin.
@@ -199,19 +206,18 @@ export async function computeBulletinsPourPeriode(
       const coef = coefMap.get(matiereId) ?? 1;
       const evalsMatiere = evaluations.filter((e) => e.matiere_id === matiereId);
 
-      let sum = 0;
-      let sumPoids = 0;
-      let nbContributed = 0;
-      for (const ev of evalsMatiere) {
-        const n = notes.find((x) => x.evaluation_id === ev.id && x.eleve_id === insc.eleve_id);
-        if (!n || n.absent || n.note === null) continue;
-        const surVingt = ((n.note + (n.bonus ?? 0)) / ev.bareme) * baseNote;
-        sum += surVingt * ev.poids;
-        sumPoids += ev.poids;
-        nbContributed += 1;
-      }
-
-      const moyenne = sumPoids > 0 ? sum / sumPoids : null;
+      const { moyenne, nbEvaluations: nbContributed } = calcMoyenneMatiere(
+        evalsMatiere.map((e) => ({ id: e.id, bareme: e.bareme, poids: e.poids })),
+        notes
+          .filter((x) => x.eleve_id === insc.eleve_id)
+          .map((x) => ({
+            evaluation_id: x.evaluation_id,
+            note: x.note,
+            bonus: x.bonus,
+            absent: x.absent,
+          })),
+        baseNote
+      );
 
       matieresOut.push({
         matiere_id: mat.id,
@@ -226,16 +232,8 @@ export async function computeBulletinsPourPeriode(
       });
     }
 
-    // 9) Moyenne générale pondérée par coefficients
-    let totalMoy = 0;
-    let totalCoef = 0;
-    matieresOut.forEach((m) => {
-      if (m.moyenne !== null) {
-        totalMoy += m.moyenne * m.coefficient;
-        totalCoef += m.coefficient;
-      }
-    });
-    const moyenneGenerale = totalCoef > 0 ? totalMoy / totalCoef : null;
+    // 9) Moyenne générale pondérée par coefficients (coef 0 = matière neutralisée)
+    const moyenneGenerale = calcMoyenneGenerale(matieresOut);
 
     elevesComputed.push({
       inscription_id: insc.id,
@@ -261,39 +259,34 @@ export async function computeBulletinsPourPeriode(
     const valeurs = elevesComputed
       .map((e) => e.matieres.find((m) => m.matiere_id === matiereId)?.moyenne)
       .filter((v): v is number => v !== null && v !== undefined);
-    const moyClasse =
-      valeurs.length > 0 ? valeurs.reduce((a, b) => a + b, 0) / valeurs.length : null;
+    const moyClasse = moyenneDeClasse(valeurs);
 
-    // Rangs par matière
-    const sorted = elevesComputed
-      .map((e) => ({ id: e.inscription_id, val: e.matieres.find((m) => m.matiere_id === matiereId)?.moyenne ?? null }))
-      .filter((x) => x.val !== null)
-      .sort((a, b) => (b.val as number) - (a.val as number));
+    // Rangs par matière (ex æquo gérés : deux 3e, puis un 5e)
+    const rangs = calculerRangs(
+      elevesComputed.map((e) => ({
+        id: e.inscription_id,
+        moyenne: e.matieres.find((m) => m.matiere_id === matiereId)?.moyenne ?? null,
+      }))
+    );
 
     for (const e of elevesComputed) {
       const m = e.matieres.find((x) => x.matiere_id === matiereId);
       if (m) {
         m.moyenne_classe = moyClasse;
-        const idx = sorted.findIndex((s) => s.id === e.inscription_id);
-        m.rang = idx >= 0 ? idx + 1 : null;
+        m.rang = rangs.get(e.inscription_id) ?? null;
       }
     }
   }
 
-  // 11) Moyenne de classe générale + rangs généraux
-  const allGen = elevesComputed
-    .map((e) => e.moyenne_generale)
-    .filter((v): v is number => v !== null);
-  const moyGenClasse = allGen.length > 0 ? allGen.reduce((a, b) => a + b, 0) / allGen.length : null;
-  const sortedGen = elevesComputed
-    .map((e) => ({ id: e.inscription_id, val: e.moyenne_generale }))
-    .filter((x) => x.val !== null)
-    .sort((a, b) => (b.val as number) - (a.val as number));
+  // 11) Moyenne de classe générale + rangs généraux (ex æquo gérés)
+  const moyGenClasse = moyenneDeClasse(elevesComputed.map((e) => e.moyenne_generale));
+  const rangsGen = calculerRangs(
+    elevesComputed.map((e) => ({ id: e.inscription_id, moyenne: e.moyenne_generale }))
+  );
 
   for (const e of elevesComputed) {
     e.moyenne_classe = moyGenClasse;
-    const idx = sortedGen.findIndex((s) => s.id === e.inscription_id);
-    e.rang = idx >= 0 ? idx + 1 : null;
+    e.rang = rangsGen.get(e.inscription_id) ?? null;
   }
 
   return elevesComputed;
@@ -360,26 +353,12 @@ export async function computeBulletinsAnnuels(
   // Pour chaque matière, chaque élève : moyenne pondérée sur les périodes
   for (const eleve of annual) {
     for (const mat of eleve.matieres) {
-      let sum = 0;
-      let sumPoids = 0;
-      let toutesPeriodesNotees = true;
-      for (let i = 0; i < byPeriode.length; i++) {
-        const p = poids[i] ?? 0;
-        if (p === 0) continue;
-        const entryEleve = byPeriode[i].find((x) => x.inscription_id === eleve.inscription_id);
+      const moyennesPeriodes = byPeriode.map((bp) => {
+        const entryEleve = bp.find((x) => x.inscription_id === eleve.inscription_id);
         const entryMat = entryEleve?.matieres.find((m) => m.matiere_id === mat.matiere_id);
-        if (entryMat?.moyenne !== null && entryMat?.moyenne !== undefined) {
-          sum += entryMat.moyenne * p;
-          sumPoids += p;
-        } else {
-          toutesPeriodesNotees = false;
-        }
-      }
-      // Formule configurée (ex. (P1 + P2*2 + P3*2) / 6) : on applique le DIVISEUR
-      // validé par la direction. Si une période manque, on retombe sur la somme
-      // des poids réellement notés pour ne pas sous-évaluer l'élève.
-      const diviseurMat = toutesPeriodesNotees ? diviseur : sumPoids;
-      mat.moyenne = sumPoids > 0 && diviseurMat > 0 ? sum / diviseurMat : null;
+        return entryMat?.moyenne ?? null;
+      });
+      mat.moyenne = calcMoyenneAnnuelle(moyennesPeriodes, poids, diviseur);
       mat.nb_evaluations = byPeriode.reduce((acc, bp) => {
         const entryEleve = bp.find((x) => x.inscription_id === eleve.inscription_id);
         const entryMat = entryEleve?.matieres.find((m) => m.matiere_id === mat.matiere_id);
@@ -387,30 +366,31 @@ export async function computeBulletinsAnnuels(
       }, 0);
     }
 
-    let totalMoy = 0;
-    let totalCoef = 0;
-    eleve.matieres.forEach((m) => {
-      if (m.moyenne !== null) {
-        totalMoy += m.moyenne * m.coefficient;
-        totalCoef += m.coefficient;
-      }
-    });
-    eleve.moyenne_generale = totalCoef > 0 ? totalMoy / totalCoef : null;
+    eleve.moyenne_generale = calcMoyenneGenerale(eleve.matieres);
   }
 
-  // Rangs annuels
-  const sorted = annual
-    .map((e) => ({ id: e.inscription_id, val: e.moyenne_generale }))
-    .filter((x) => x.val !== null)
-    .sort((a, b) => (b.val as number) - (a.val as number));
-
-  const allGen = annual.map((e) => e.moyenne_generale).filter((v): v is number => v !== null);
-  const moyClasse = allGen.length > 0 ? allGen.reduce((a, b) => a + b, 0) / allGen.length : null;
-
+  // Rangs annuels (ex æquo gérés)
+  const moyClasseAnnuel = moyenneDeClasse(annual.map((e) => e.moyenne_generale));
+  const rangsAnnuels = calculerRangs(
+    annual.map((e) => ({ id: e.inscription_id, moyenne: e.moyenne_generale }))
+  );
   for (const e of annual) {
-    e.moyenne_classe = moyClasse;
-    const idx = sorted.findIndex((s) => s.id === e.inscription_id);
-    e.rang = idx >= 0 ? idx + 1 : null;
+    e.moyenne_classe = moyClasseAnnuel;
+    e.rang = rangsAnnuels.get(e.inscription_id) ?? null;
+    // Moyenne de classe et rang par matière
+    for (const mat of e.matieres) {
+      const valeurs = annual
+        .map((x) => x.matieres.find((m) => m.matiere_id === mat.matiere_id)?.moyenne ?? null)
+        .filter((v): v is number => v !== null);
+      mat.moyenne_classe = moyenneDeClasse(valeurs);
+      const rangsMat = calculerRangs(
+        annual.map((x) => ({
+          id: x.inscription_id,
+          moyenne: x.matieres.find((m) => m.matiere_id === mat.matiere_id)?.moyenne ?? null,
+        }))
+      );
+      mat.rang = rangsMat.get(e.inscription_id) ?? null;
+    }
   }
 
   return annual;

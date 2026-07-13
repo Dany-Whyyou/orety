@@ -134,7 +134,7 @@ export function RolesList({ roles, permissions }: Props) {
           <DialogHeader>
             <DialogTitle>Supprimer le rôle ?</DialogTitle>
             <DialogDescription>
-              Le rôle <strong>{deleteTarget?.libelle}</strong> sera supprimé. Impossible si des
+              Le rôle <strong>{deleteTarget?.libelle}</strong> sera archivé. Impossible si des
               utilisateurs y sont encore assignés.
             </DialogDescription>
           </DialogHeader>

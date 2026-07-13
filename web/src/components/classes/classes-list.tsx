@@ -60,13 +60,16 @@ export function ClassesList({ classes, niveaux, annees, profs }: Props) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<ClasseItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<ClasseItem | null>(null);
+  const [archiving, setArchiving] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [anneeFilter, setAnneeFilter] = React.useState<string>("active");
   const [cycleFilter, setCycleFilter] = React.useState<string>("tous");
 
   async function onDelete() {
     if (!deleteTarget) return;
+    setArchiving(true);
     const res = await deleteClasse(deleteTarget.id);
+    setArchiving(false);
     if (res.ok) {
       toast.success("Classe archivée");
       setDeleteTarget(null);
@@ -284,7 +287,7 @@ export function ClassesList({ classes, niveaux, annees, profs }: Props) {
           <DialogHeader>
             <DialogTitle>Archiver la classe ?</DialogTitle>
             <DialogDescription>
-              <strong>{deleteTarget?.nom}</strong> et ses affectations seront supprimées.
+              <strong>{deleteTarget?.nom}</strong> et ses affectations seront archivées.
               {deleteTarget && deleteTarget.effectif > 0 && (
                 <span className="block mt-2 text-danger">
                   ⚠ {deleteTarget.effectif} élève{deleteTarget.effectif > 1 ? "s" : ""} rattachés.
@@ -296,7 +299,7 @@ export function ClassesList({ classes, niveaux, annees, profs }: Props) {
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={onDelete}>
+            <Button variant="destructive" onClick={onDelete} disabled={archiving}>
               <Trash2 /> Archiver
             </Button>
           </DialogFooter>

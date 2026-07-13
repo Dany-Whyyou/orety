@@ -55,11 +55,14 @@ export function AnnoncesList({ annonces, etablissements, classes }: Props) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<AnnonceItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<AnnonceItem | null>(null);
+  const [archiving, setArchiving] = React.useState(false);
   const [search, setSearch] = React.useState("");
 
   async function onDelete() {
     if (!deleteTarget) return;
+    setArchiving(true);
     const res = await deleteAnnonce(deleteTarget.id);
+    setArchiving(false);
     if (res.ok) {
       toast.success("Annonce archivée");
       setDeleteTarget(null);
@@ -221,14 +224,14 @@ export function AnnoncesList({ annonces, etablissements, classes }: Props) {
           <DialogHeader>
             <DialogTitle>Archiver l&apos;annonce ?</DialogTitle>
             <DialogDescription>
-              <strong>{deleteTarget?.titre}</strong> sera supprimée. Cette action est irréversible.
+              <strong>{deleteTarget?.titre}</strong> sera archivée. Cette action est irréversible.
              Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={onDelete}>
+            <Button variant="destructive" onClick={onDelete} disabled={archiving}>
               <Trash2 /> Archiver
             </Button>
           </DialogFooter>

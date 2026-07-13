@@ -54,6 +54,7 @@ export function AnneesList({ annees, etablissements }: Props) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<AnneeListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<AnneeListItem | null>(null);
+  const [archiving, setArchiving] = React.useState(false);
   const [deleteConfigTarget, setDeleteConfigTarget] = React.useState<string | null>(null);
   const [configTarget, setConfigTarget] = React.useState<{
     anneeId: string;
@@ -69,7 +70,9 @@ export function AnneesList({ annees, etablissements }: Props) {
 
   async function onDelete() {
     if (!deleteTarget) return;
+    setArchiving(true);
     const res = await deleteAnnee(deleteTarget.id);
+    setArchiving(false);
     if (res.ok) {
       toast.success("Année archivée");
       setDeleteTarget(null);
@@ -331,14 +334,14 @@ export function AnneesList({ annees, etablissements }: Props) {
             <DialogTitle>Archiver l&apos;année scolaire ?</DialogTitle>
             <DialogDescription>
               L&apos;année <strong>{deleteTarget?.libelle}</strong>, ses configurations de bulletin,
-              ses périodes et ses inscriptions seront supprimées. <strong>Irréversible.</strong>
+              ses périodes et ses inscriptions seront archivées. <strong>Irréversible.</strong>
              Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={onDelete}>
+            <Button variant="destructive" onClick={onDelete} disabled={archiving}>
               <Trash2 /> Archiver
             </Button>
           </DialogFooter>

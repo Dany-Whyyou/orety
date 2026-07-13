@@ -250,111 +250,29 @@ export async function cloturerAnnee(annee_id: string): Promise<ActionResult> {
       );
     }
 
-    // 2) Appliquer les statuts d'inscription (seulement maintenant : avant la
-    //    clôture, l'élève reste "inscrit" pour rester visible partout)
-    for (const [decision, statut] of Object.entries(STATUT_FROM_DECISION)) {
-      const ids = state.classes.flatMap((c) =>
-        c.eleves.filter((e) => e.decision_fin_annee === decision).map((e) => e.inscription_id)
-      );
-      if (ids.length > 0) {
-        await supabase.from("inscriptions").update({ statut }).in("id", ids);
-      }
-    }
-
-    // 3) Désactiver les seuls élèves qui quittent réellement l'école.
-    //    Un diplômé (CM2 → 6e, 3e → 2nde) change de cycle, donc d'établissement :
-    //    aucune cible automatique fiable, mais on ne le désactive PAS (sinon le
-    //    trigger désactive aussi son compte parent et la cohorte sort du système).
-    //    Il reste actif, à réinscrire manuellement dans le nouveau cycle.
-    const sortants = state.classes.flatMap((c) =>
-      c.eleves
-        .filter(
-          (e) =>
-            e.decision_fin_annee === "exclu" ||
-            e.decision_fin_annee === "transfere" ||
-            e.decision_fin_annee === "abandonne"
-        )
-        .map((e) => e.eleve_id)
-    );
-    if (sortants.length > 0) {
-      await supabase.from("eleves").update({ actif: false }).in("id", sortants);
-    }
-
-    // 3) Pré-inscription auto dans l'année suivante pour admis et redouble
-    const prochaine = await getProchaineAnnee(annee_id);
-    let nbPreinscrits = 0;
-    if (prochaine) {
-      for (const classe of state.classes) {
-        // Cible de classe dans l'année suivante pour cette cohorte
-        // - redouble : même niveau
-        // - admis : niveau d'ordre directement supérieur dans le même établissement
-        const { data: prochainesClasses } = await supabase
-          .from("classes")
-          .select("id, niveau_id, niveaux(ordre, etablissement_id)")
-          .eq("annee_scolaire_id", prochaine.id);
-
-        const targetSameLevel = (prochainesClasses ?? []).find((c) => {
-          const n = Array.isArray(c.niveaux) ? c.niveaux[0] : c.niveaux;
-          return c.niveau_id === classe.niveau_id;
-        });
-        const targetNextLevel = (prochainesClasses ?? [])
-          .filter((c) => {
-            const n = Array.isArray(c.niveaux) ? c.niveaux[0] : c.niveaux;
-            return (
-              (n as { etablissement_id: string } | null)?.etablissement_id === classe.etablissement_id &&
-              (n as { ordre: number } | null)?.ordre === classe.niveau_ordre + 1
-            );
-          })
-          .sort((a, b) => a.id.localeCompare(b.id))[0];
-
-        for (const eleve of classe.eleves) {
-          if (eleve.decision_fin_annee === "redouble" && targetSameLevel) {
-            const { data: existing } = await supabase
-              .from("inscriptions")
-              .select("id")
-              .eq("eleve_id", eleve.eleve_id)
-              .eq("annee_scolaire_id", prochaine.id)
-              .maybeSingle();
-            if (!existing) {
-              await supabase.from("inscriptions").insert({
-                eleve_id: eleve.eleve_id,
-                classe_id: targetSameLevel.id,
-                annee_scolaire_id: prochaine.id,
-                statut: "inscrit",
-              });
-              nbPreinscrits += 1;
-            }
-          } else if (eleve.decision_fin_annee === "admis" && targetNextLevel) {
-            const { data: existing } = await supabase
-              .from("inscriptions")
-              .select("id")
-              .eq("eleve_id", eleve.eleve_id)
-              .eq("annee_scolaire_id", prochaine.id)
-              .maybeSingle();
-            if (!existing) {
-              await supabase.from("inscriptions").insert({
-                eleve_id: eleve.eleve_id,
-                classe_id: targetNextLevel.id,
-                annee_scolaire_id: prochaine.id,
-                statut: "inscrit",
-              });
-              nbPreinscrits += 1;
-            }
-          }
-        }
-      }
-    }
-
-    // 4) Marquer l'année archivée
-    await supabase
-      .from("annees_scolaires")
-      .update({ archivee: true, active: false })
-      .eq("id", annee_id);
+    // 2-5) Statuts, désactivations, pré-inscriptions et archivage :
+    //      une seule transaction SQL, atomique et idempotente (un échec ne peut
+    //      plus laisser l'année à moitié clôturée).
+    const rpc = supabase as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{
+        data: { nb_statuts: number; nb_desactives: number; nb_preinscrits: number }[] | null;
+        error: { message: string } | null;
+      }>;
+    };
+    const { data: resultat, error: clotureErr } = await rpc.rpc("cloturer_annee", {
+      p_annee_id: annee_id,
+      p_organisation_id: user.organisation_id,
+    });
+    if (clotureErr) return { ok: false, error: messageErreur(clotureErr) };
+    const bilan = resultat?.[0];
 
     revalidatePath("/admin/annees");
     revalidatePath("/admin/archives");
     revalidatePath("/admin");
-    return { ok: true, count: nbPreinscrits };
+    return { ok: true, count: bilan?.nb_preinscrits ?? 0 };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur" };
   }

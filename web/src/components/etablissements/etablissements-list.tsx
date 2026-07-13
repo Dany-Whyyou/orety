@@ -59,6 +59,7 @@ export function EtablissementsList({ etablissements }: Props) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<EtablissementListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<EtablissementListItem | null>(null);
+  const [archiving, setArchiving] = React.useState(false);
   const [pendingToggleId, setPendingToggleId] = React.useState<string | null>(null);
 
   async function onToggle(e: EtablissementListItem) {
@@ -74,7 +75,9 @@ export function EtablissementsList({ etablissements }: Props) {
 
   async function onDelete() {
     if (!deleteTarget) return;
+    setArchiving(true);
     const res = await deleteEtablissement(deleteTarget.id);
+    setArchiving(false);
     if (res.ok) {
       toast.success("Établissement archivé");
       setDeleteTarget(null);
@@ -257,7 +260,7 @@ export function EtablissementsList({ etablissements }: Props) {
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={onDelete}>
+            <Button variant="destructive" onClick={onDelete} disabled={archiving}>
               <Trash2 /> Archiver définitivement
             </Button>
           </DialogFooter>

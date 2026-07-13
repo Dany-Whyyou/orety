@@ -70,3 +70,7 @@ docs/photos/*.MP4
 web/.open-next/
 web/.wrangler/
 web/.dev.vars
+
+# Worker keep-alive
+keepalive/node_modules/
+keepalive/.wrangler/

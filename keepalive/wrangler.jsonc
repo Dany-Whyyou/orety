@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "orety-keepalive",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "observability": { "enabled": true },
+  "triggers": {
+    // Tous les jours à 6h05 UTC (7h05 à Port-Gentil) : maintient le projet
+    // Supabase actif (le plan Free met en pause après ~7 jours d'inactivité).
+    "crons": ["5 6 * * *"]
+  }
+  // Secrets à créer une fois :
+  //   npx wrangler secret put SUPABASE_URL
+  //   npx wrangler secret put SUPABASE_ANON_KEY
+}

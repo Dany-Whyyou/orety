@@ -9,11 +9,25 @@ export const dynamic = "force-dynamic";
 export default async function ElevesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ recherche?: string }>;
+  searchParams: Promise<{
+    recherche?: string;
+    page?: string;
+    etablissement?: string;
+    statut?: string;
+  }>;
 }) {
-  const { recherche } = await searchParams;
-  const [eleves, formData, parents] = await Promise.all([
-    getEleves(),
+  const params = await searchParams;
+  const page = Number.parseInt(params.page ?? "0", 10) || 0;
+  const statut =
+    params.statut === "actif" || params.statut === "inactif" ? params.statut : undefined;
+
+  const [resultat, formData, parents] = await Promise.all([
+    getEleves({
+      page,
+      recherche: params.recherche,
+      etablissement_id: params.etablissement,
+      statut,
+    }),
     getEleveFormData(),
     getParentsForPicker(),
   ]);
@@ -23,16 +37,23 @@ export default async function ElevesPage({
       <PageHeader
         title="Élèves"
         description={
-          eleves.length === 0
+          resultat.total === 0
             ? "Aucun élève inscrit pour l'instant"
-            : `${eleves.length} élève${eleves.length > 1 ? "s" : ""}`
+            : `${resultat.total} élève${resultat.total > 1 ? "s" : ""}`
         }
         icon={<Users className="size-5" />}
         breadcrumbs={[{ label: "Élèves" }]}
       />
       <ElevesTable
-        initialSearch={recherche ?? ""}
-        eleves={eleves}
+        eleves={resultat.eleves}
+        total={resultat.total}
+        page={resultat.page}
+        pageCount={resultat.pageCount}
+        filtres={{
+          recherche: params.recherche ?? "",
+          etablissement: params.etablissement ?? "tous",
+          statut: params.statut ?? "tous",
+        }}
         etablissements={formData.etablissements}
         classes={formData.classes}
         annees={formData.annees}

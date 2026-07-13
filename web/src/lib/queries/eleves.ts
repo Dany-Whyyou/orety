@@ -33,11 +33,35 @@ export type EleveListItem = {
   } | null;
 };
 
-export async function getEleves(): Promise<EleveListItem[]> {
+export const ELEVES_PAR_PAGE = 25;
+
+export type ElevesOptions = {
+  page?: number;
+  recherche?: string;
+  etablissement_id?: string;
+  statut?: "actif" | "inactif";
+};
+
+export type ElevesResultat = {
+  eleves: EleveListItem[];
+  total: number;
+  page: number;
+  pageCount: number;
+};
+
+/**
+ * Liste des élèves : recherche, filtres et pagination exécutés EN BASE.
+ * Sans ça, la page charge tous les élèves (adresse, infos médicales, allergies…)
+ * à chaque navigation, et la liste est de toute façon tronquée à 1000 lignes
+ * par PostgREST au-delà.
+ */
+export async function getEleves(opts: ElevesOptions = {}): Promise<ElevesResultat> {
   const supabase = createAdminClient();
   const scope = await getEtabScope();
+  const page = Math.max(0, opts.page ?? 0);
+  const debut = page * ELEVES_PAR_PAGE;
 
-  const base = supabase
+  let requete = supabase
     .from("eleves")
     .select(
       `
@@ -52,25 +76,36 @@ export async function getEleves(): Promise<EleveListItem[]> {
         annees_scolaires!inner(active)
       ),
       utilisateurs!fk_eleves_cle_parentale(id, pseudo, nom, prenom)
-    `
+    `,
+      { count: "exact" }
     )
-    .order("nom");
+    .is("archive_le", null);
 
-  const filtre = base.is("archive_le", null);
-  const { data, error } = await (scope ? filtre.eq("etablissement_id", scope) : filtre);
+  const etab = scope ?? opts.etablissement_id;
+  if (etab && etab !== "tous") requete = requete.eq("etablissement_id", etab);
+  if (opts.statut === "actif") requete = requete.eq("actif", true);
+  if (opts.statut === "inactif") requete = requete.eq("actif", false);
 
-  if (error) {
-    console.error(
-      "getEleves:",
-      error.message,
-      error.code,
-      error.details,
-      error.hint
+  // Caractères réservés de la syntaxe `or=` de PostgREST
+  const terme = (opts.recherche ?? "").trim().replace(/[,()".%_\\]/g, " ").trim();
+  if (terme.length >= 2) {
+    const like = `%${terme}%`;
+    requete = requete.or(
+      `nom.ilike.${like},prenom.ilike.${like},matricule.ilike.${like},cle_parentale.ilike.${like}`
     );
-    return [];
   }
 
-  return (data ?? []).map((e: {
+  const { data, error, count } = await requete
+    .order("nom")
+    .range(debut, debut + ELEVES_PAR_PAGE - 1);
+
+  if (error) {
+    console.error("getEleves:", error.message, error.code, error.details, error.hint);
+    throw new Error("La liste des élèves n'a pas pu être chargée.");
+  }
+
+  const total = count ?? 0;
+  const eleves = (data ?? []).map((e: {
     id: string;
     matricule: string;
     nom: string;
@@ -148,6 +183,13 @@ export async function getEleves(): Promise<EleveListItem[]> {
         : null,
     };
   });
+
+  return {
+    eleves,
+    total,
+    page,
+    pageCount: Math.max(1, Math.ceil(total / ELEVES_PAR_PAGE)),
+  };
 }
 
 export async function getEleveFormData() {

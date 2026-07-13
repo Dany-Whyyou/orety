@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Filter,
@@ -60,11 +61,14 @@ type Classe = {
 
 type Props = {
   eleves: EleveListItem[];
+  total: number;
+  page: number;
+  pageCount: number;
+  filtres: { recherche: string; etablissement: string; statut: string };
   etablissements: { id: string; nom: string }[];
   classes: Classe[];
   annees: { id: string; libelle: string; active: boolean }[];
   parents: Parent[];
-  initialSearch?: string;
 };
 
 const cycleColors: Record<string, string> = {
@@ -114,13 +118,52 @@ function exportCsv(rows: EleveListItem[]) {
   URL.revokeObjectURL(url);
 }
 
-export function ElevesTable({ eleves, etablissements, classes, annees, parents, initialSearch }: Props) {
-  const [activeCycle, setActiveCycle] = React.useState<string>("tous");
-  const [search, setSearch] = React.useState(initialSearch ?? "");
+export function ElevesTable({
+  eleves,
+  total,
+  page,
+  pageCount,
+  filtres,
+  etablissements,
+  classes,
+  annees,
+  parents,
+}: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [search, setSearch] = React.useState(filtres.recherche);
+
+  // La recherche, les filtres et la pagination s'exécutent EN BASE : on les
+  // pilote par l'URL (partageable, et compatible retour arrière).
+  const naviguer = React.useCallback(
+    (maj: Record<string, string | number | undefined>) => {
+      const params = new URLSearchParams();
+      const etat: Record<string, string | number | undefined> = {
+        recherche: filtres.recherche || undefined,
+        etablissement: filtres.etablissement !== "tous" ? filtres.etablissement : undefined,
+        statut: filtres.statut !== "tous" ? filtres.statut : undefined,
+        page: page || undefined,
+        ...maj,
+      };
+      for (const [cle, val] of Object.entries(etat)) {
+        if (val !== undefined && val !== "" && val !== "tous" && val !== 0) {
+          params.set(cle, String(val));
+        }
+      }
+      const qs = params.toString();
+      router.push(qs ? `${pathname}?${qs}` : pathname);
+    },
+    [router, pathname, filtres, page]
+  );
+
+  // Recherche : on attend que la frappe se calme avant d'interroger la base
+  React.useEffect(() => {
+    if (search === filtres.recherche) return;
+    const t = setTimeout(() => naviguer({ recherche: search || undefined, page: undefined }), 350);
+    return () => clearTimeout(t);
+  }, [search, filtres.recherche, naviguer]);
+
   const [filtersOpen, setFiltersOpen] = React.useState(false);
-  const [etabFilter, setEtabFilter] = React.useState<string>("tous");
-  const [statutFilter, setStatutFilter] = React.useState<string>("tous");
-  const [page, setPage] = React.useState(0);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<EleveListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<EleveListItem | null>(null);
@@ -148,37 +191,12 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
     else toast.error(res.error);
   }
 
-  const filtered = eleves.filter((e) => {
-    const matchCycle = activeCycle === "tous" || e.cycle === activeCycle;
-    const matchEtab = etabFilter === "tous" || e.etablissement_id === etabFilter;
-    const matchStatut =
-      statutFilter === "tous" || (statutFilter === "actif" ? e.actif : !e.actif);
-    const s = search.toLowerCase().trim();
-    const matchSearch =
-      !s ||
-      e.nom.toLowerCase().includes(s) ||
-      e.prenom.toLowerCase().includes(s) ||
-      e.matricule.toLowerCase().includes(s) ||
-      (e.classe ?? "").toLowerCase().includes(s) ||
-      e.cle_parentale.toLowerCase().includes(s);
-    return matchCycle && matchEtab && matchStatut && matchSearch;
-  });
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount - 1);
-  const pageRows = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
-  const nbFiltresActifs = (etabFilter !== "tous" ? 1 : 0) + (statutFilter !== "tous" ? 1 : 0);
-
-  // Retour page 1 quand un filtre change
-  React.useEffect(() => {
-    setPage(0);
-  }, [search, activeCycle, etabFilter, statutFilter]);
-
-  // Deep-link (palette ⌘K, top absents) : resynchronise même si on est déjà
-  // sur la page — le composant n'est alors pas remonté.
-  React.useEffect(() => {
-    if (initialSearch !== undefined) setSearch(initialSearch);
-  }, [initialSearch]);
+  const currentPage = page;
+  const pageRows = eleves;
+  const filtered = eleves;
+  const nbFiltresActifs =
+    (filtres.etablissement !== "tous" ? 1 : 0) + (filtres.statut !== "tous" ? 1 : 0);
 
   return (
     <>
@@ -193,29 +211,6 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
           />
         </div>
 
-        <div className="flex items-center gap-1 p-1 rounded-lg bg-card/60 border border-border/50 backdrop-blur">
-          {filters.map((c) => {
-            const active = activeCycle === c.key;
-            return (
-              <button
-                key={c.key}
-                onClick={() => setActiveCycle(c.key)}
-                className={`relative px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  active ? "text-white" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="eleves-cycle-pill"
-                    className="absolute inset-0 rounded-md bg-gradient-to-r from-primary to-accent"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <span className="relative">{c.label}</span>
-              </button>
-            );
-          })}
-        </div>
 
         <Button
           variant={nbFiltresActifs > 0 ? "secondary" : "outline"}
@@ -227,10 +222,10 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
         <Button
           variant="outline"
           size="default"
-          disabled={filtered.length === 0}
+          disabled={eleves.length === 0}
           onClick={() => {
-            exportCsv(filtered);
-            toast.success(`${filtered.length} élève${filtered.length > 1 ? "s" : ""} exporté${filtered.length > 1 ? "s" : ""} en CSV`);
+            exportCsv(eleves);
+            toast.success(`${eleves.length} élève${eleves.length > 1 ? "s" : ""} de cette page exporté${eleves.length > 1 ? "s" : ""} en CSV`);
           }}
         >
           <Download /> Exporter
@@ -250,8 +245,8 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
           <div className="flex-1 space-y-1.5">
             <p className="text-xs font-medium text-muted-foreground">Établissement</p>
             <select
-              value={etabFilter}
-              onChange={(e) => setEtabFilter(e.target.value)}
+              value={filtres.etablissement}
+              onChange={(e) => naviguer({ etablissement: e.target.value, page: undefined })}
               className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
             >
               <option value="tous">Tous les établissements</option>
@@ -263,8 +258,8 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
           <div className="flex-1 space-y-1.5">
             <p className="text-xs font-medium text-muted-foreground">Statut</p>
             <select
-              value={statutFilter}
-              onChange={(e) => setStatutFilter(e.target.value)}
+              value={filtres.statut}
+              onChange={(e) => naviguer({ statut: e.target.value, page: undefined })}
               className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
             >
               <option value="tous">Tous</option>
@@ -276,10 +271,7 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
             variant="ghost"
             size="sm"
             disabled={nbFiltresActifs === 0}
-            onClick={() => {
-              setEtabFilter("tous");
-              setStatutFilter("tous");
-            }}
+            onClick={() => naviguer({ etablissement: undefined, statut: undefined, page: undefined })}
           >
             Réinitialiser
           </Button>
@@ -410,8 +402,7 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
 
             <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 text-xs text-muted-foreground">
               <span>
-                {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
-                {filtered.length !== eleves.length && ` sur ${eleves.length}`}
+                {total} résultat{total > 1 ? "s" : ""}
                 {pageCount > 1 && ` — page ${currentPage + 1}/${pageCount}`}
               </span>
               <div className="flex items-center gap-1">
@@ -419,7 +410,7 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
                   variant="ghost"
                   size="sm"
                   disabled={currentPage === 0}
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  onClick={() => naviguer({ page: Math.max(0, page - 1) })}
                 >
                   Précédent
                 </Button>
@@ -427,7 +418,7 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents, 
                   variant="outline"
                   size="sm"
                   disabled={currentPage >= pageCount - 1}
-                  onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                  onClick={() => naviguer({ page: Math.min(pageCount - 1, page + 1) })}
                 >
                   Suivant
                 </Button>

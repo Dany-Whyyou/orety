@@ -31,8 +31,16 @@ import {
 } from "@/lib/actions/bulletins";
 import type { BulletinDetail } from "@/lib/queries/bulletins";
 
+export type BulletinBranding = {
+  nom: string;
+  devise: string;
+  adresse: string;
+  couleur_primaire?: string | null;
+};
+
 type Props = {
   bulletin: BulletinDetail;
+  branding: BulletinBranding;
 };
 
 function gradeColor(m: number | null): string {
@@ -51,7 +59,7 @@ function gradeLetter(m: number | null): string {
   return "Insuffisant";
 }
 
-export function BulletinDetailView({ bulletin }: Props) {
+export function BulletinDetailView({ bulletin, branding }: Props) {
   const [editMode, setEditMode] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [appreciation, setAppreciation] = React.useState(bulletin.appreciation_generale ?? "");
@@ -103,7 +111,7 @@ export function BulletinDetailView({ bulletin }: Props) {
     setPdfBusy(true);
     try {
       const { genererBulletinPdf } = await import("@/lib/bulletin/pdf");
-      const { base64, filename } = genererBulletinPdf(bulletin);
+      const { base64, filename } = genererBulletinPdf(bulletin, branding);
       const res = await enregistrerBulletinPdf(bulletin.id, base64, filename);
       if (res.ok && res.url) {
         setPdfUrl(res.url);
@@ -181,7 +189,7 @@ export function BulletinDetailView({ bulletin }: Props) {
           <div className="relative flex items-start justify-between gap-4">
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em] font-semibold opacity-80">
-                Complexe Scolaire Orety
+                {branding.nom}
               </p>
               <h1 className="font-display text-2xl md:text-3xl font-bold mt-1">
                 {bulletin.est_annuel ? "Bulletin annuel" : `Bulletin · ${bulletin.periode_libelle}`}
@@ -189,8 +197,7 @@ export function BulletinDetailView({ bulletin }: Props) {
               <p className="text-sm opacity-90 mt-1">Année scolaire {bulletin.annee_libelle}</p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] uppercase tracking-wide opacity-70">Port-Gentil · Gabon</p>
-              <p className="text-[10px] opacity-70 mt-0.5">BP 2110</p>
+              <p className="text-[10px] uppercase tracking-wide opacity-70">{branding.adresse}</p>
             </div>
           </div>
         </div>
@@ -422,7 +429,7 @@ export function BulletinDetailView({ bulletin }: Props) {
           </div>
           <div className="text-right">
             <p className="font-semibold text-foreground italic">
-              &laquo; Persévérance — Excellence &raquo;
+              &laquo; {branding.devise} &raquo;
             </p>
             <p className="mt-1">Signature du chef d&apos;établissement</p>
             <div className="mt-8 w-40 h-px bg-border ml-auto"></div>

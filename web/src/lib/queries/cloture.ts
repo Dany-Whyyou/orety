@@ -69,10 +69,11 @@ export async function getClotureState(anneeId: string): Promise<ClotureState | n
     .from("inscriptions")
     .select(
       `id, statut, decision_fin_annee, motif_decision, eleve_id,
-       eleves(nom, prenom, matricule),
+       eleves!inner(nom, prenom, matricule, archive_le),
        classes(id, nom, niveau_id, niveaux(libelle, code, cycle, ordre, etablissement_id, etablissements(nom)))`
     )
-    .eq("annee_scolaire_id", anneeId);
+    .eq("annee_scolaire_id", anneeId)
+    .is("eleves.archive_le", null);
 
   if (error) {
     console.error("getClotureState:", error.message);
@@ -85,7 +86,8 @@ export async function getClotureState(anneeId: string): Promise<ClotureState | n
     .from("bulletins")
     .select("inscription_id, moyenne_generale, moyenne_classe, rang, est_annuel")
     .in("inscription_id", inscIds.length ? inscIds : ["_none_"])
-    .eq("est_annuel", true);
+    .eq("est_annuel", true)
+    .is("archive_le", null);
   const bulletinMap = new Map<string, { moyenne: number | null; moyenne_classe: number | null; rang: number | null }>();
   (bulletins ?? []).forEach((b) => {
     bulletinMap.set(b.inscription_id, {

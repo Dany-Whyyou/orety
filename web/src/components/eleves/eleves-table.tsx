@@ -64,6 +64,7 @@ type Props = {
   classes: Classe[];
   annees: { id: string; libelle: string; active: boolean }[];
   parents: Parent[];
+  initialSearch?: string;
 };
 
 const cycleColors: Record<string, string> = {
@@ -113,9 +114,9 @@ function exportCsv(rows: EleveListItem[]) {
   URL.revokeObjectURL(url);
 }
 
-export function ElevesTable({ eleves, etablissements, classes, annees, parents }: Props) {
+export function ElevesTable({ eleves, etablissements, classes, annees, parents, initialSearch }: Props) {
   const [activeCycle, setActiveCycle] = React.useState<string>("tous");
-  const [search, setSearch] = React.useState("");
+  const [search, setSearch] = React.useState(initialSearch ?? "");
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [etabFilter, setEtabFilter] = React.useState<string>("tous");
   const [statutFilter, setStatutFilter] = React.useState<string>("tous");

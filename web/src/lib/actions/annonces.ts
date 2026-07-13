@@ -72,10 +72,17 @@ export async function createAnnonce(raw: unknown): Promise<ActionResult> {
 
 export async function updateAnnonce(id: string, raw: unknown): Promise<ActionResult> {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const input = schema.parse(raw);
     const supabase = createAdminClient();
-    const { error } = await supabase
+
+    const { data: avant } = await supabase
+      .from("annonces")
+      .select("publiee")
+      .eq("id", id)
+      .single();
+
+    const { data: annonce, error } = await supabase
       .from("annonces")
       .update({
         titre: input.titre,
@@ -85,9 +92,18 @@ export async function updateAnnonce(id: string, raw: unknown): Promise<ActionRes
         classe_id: input.cible === "classe" ? input.classe_id : null,
         expire_le: input.expire_le || null,
         publiee: input.publiee,
+        publiee_le: input.publiee ? new Date().toISOString() : null,
       })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id, titre, organisation_id")
+      .single();
     if (error) return { ok: false, error: error.message };
+
+    // Passage brouillon → publiée via le formulaire d'édition : on notifie aussi
+    if (input.publiee && avant && !avant.publiee && annonce) {
+      await notifierAnnonce(annonce.id, annonce.organisation_id, annonce.titre, user.id);
+    }
+
     revalidatePath("/admin/communications");
     return { ok: true };
   } catch (e) {

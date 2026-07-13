@@ -79,6 +79,18 @@ export async function deleteAffectation(id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
     const supabase = createAdminClient();
+    // Une affectation portant des évaluations fait partie de l'historique
+    // pédagogique : suppression refusée (conformité).
+    const { count } = await supabase
+      .from("evaluations")
+      .select("*", { count: "exact", head: true })
+      .eq("affectation_id", id);
+    if ((count ?? 0) > 0) {
+      return {
+        ok: false,
+        error: `Impossible : ${count} évaluation(s) sont rattachées à cette affectation`,
+      };
+    }
     const { error } = await supabase.from("affectations").delete().eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/affectations");

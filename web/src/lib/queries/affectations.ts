@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEtabScope } from "@/lib/auth";
 
 export type AffectationItem = {
   id: string;
@@ -23,16 +24,19 @@ export type AffectationItem = {
 
 export async function getAffectations(): Promise<AffectationItem[]> {
   const supabase = createAdminClient();
+  const scope = await getEtabScope();
 
-  const { data, error } = await supabase
+  const base = supabase
     .from("affectations")
     .select(
       `id, utilisateur_id, classe_id, annee_scolaire_id, matiere_id, heures_semaine,
        utilisateurs(nom, prenom, pseudo),
-       classes(nom, niveaux(libelle, cycle)),
+       classes!inner(nom, archive_le, niveaux!inner(libelle, cycle, etablissement_id)),
        annees_scolaires(libelle, active),
        matieres(nom, code, couleur)`
-    );
+    )
+    .is("classes.archive_le", null);
+  const { data, error } = await (scope ? base.eq("classes.niveaux.etablissement_id", scope) : base);
 
   if (error) {
     console.error("getAffectations:", error);
@@ -99,12 +103,14 @@ export async function getAffectationFormData() {
       supabase
         .from("classes")
         .select("id, nom, niveau_id, annee_scolaire_id, niveaux(libelle, cycle, etablissement_id), annees_scolaires(libelle, active)")
+        .is("archive_le", null)
         .order("nom"),
       supabase
         .from("annees_scolaires")
         .select("id, libelle, active")
+        .is("archive_le", null)
         .order("date_debut", { ascending: false }),
-      supabase.from("matieres").select("id, nom, code, couleur, etablissement_id, ordre").order("ordre"),
+      supabase.from("matieres").select("id, nom, code, couleur, etablissement_id, ordre").is("archive_le", null).order("ordre"),
     ]);
 
   return {

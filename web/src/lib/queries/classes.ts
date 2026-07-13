@@ -95,10 +95,11 @@ export async function getClasses(): Promise<ClasseItem[]> {
 export async function getClasseFormData() {
   const supabase = createAdminClient();
   const [{ data: niveaux }, { data: annees }, { data: profs }] = await Promise.all([
-    supabase.from("niveaux").select("id, libelle, code, cycle, etablissement_id, ordre").order("ordre"),
+    supabase.from("niveaux").select("id, libelle, code, cycle, etablissement_id, ordre").is("archive_le", null).order("ordre"),
     supabase
       .from("annees_scolaires")
       .select("id, libelle, active, date_debut")
+      .is("archive_le", null)
       .order("date_debut", { ascending: false }),
     supabase
       .from("utilisateurs")

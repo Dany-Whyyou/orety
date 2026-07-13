@@ -219,8 +219,32 @@ export async function saveConfigBulletin(
         .eq("id", existing.id);
       if (error) return { ok: false, error: error.message };
       configId = existing.id;
-      // Delete old periods to regenerate
-      await supabase.from("periodes_scolaires").delete().eq("config_bulletin_id", configId);
+      // Régénérer les périodes n'est permis que si aucune donnée n'y est rattachée
+      const { data: periodesExistantes } = await supabase
+        .from("periodes_scolaires")
+        .select("id")
+        .eq("config_bulletin_id", configId);
+      const periodeIds = (periodesExistantes ?? []).map((p) => p.id);
+      if (periodeIds.length > 0) {
+        const [{ count: nbEvals }, { count: nbBulletins }] = await Promise.all([
+          supabase
+            .from("evaluations")
+            .select("*", { count: "exact", head: true })
+            .in("periode_id", periodeIds),
+          supabase
+            .from("bulletins")
+            .select("*", { count: "exact", head: true })
+            .in("periode_id", periodeIds),
+        ]);
+        if ((nbEvals ?? 0) > 0 || (nbBulletins ?? 0) > 0) {
+          return {
+            ok: false,
+            error:
+              "Impossible de régénérer les périodes : des évaluations ou bulletins y sont rattachés. Modifiez uniquement la formule, ou créez une nouvelle année.",
+          };
+        }
+        await supabase.from("periodes_scolaires").delete().eq("config_bulletin_id", configId);
+      }
     } else {
       const { data, error } = await supabase
         .from("config_bulletins")

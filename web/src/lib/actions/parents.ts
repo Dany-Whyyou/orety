@@ -258,9 +258,15 @@ export async function deleteParent(utilisateur_id: string): Promise<ActionResult
     if (error) return { ok: false, error: error.message };
 
     const authClient = createAuthClient();
-    await authClient.auth.admin.updateUserById(utilisateur_id, {
+    const { error: banErr } = await authClient.auth.admin.updateUserById(utilisateur_id, {
       ban_duration: "876000h",
     });
+    if (banErr) {
+      return {
+        ok: false,
+        error: `Compte archivé mais blocage de connexion échoué : ${banErr.message}`,
+      };
+    }
     revalidatePath("/admin/parents");
     return { ok: true };
   } catch (e) {

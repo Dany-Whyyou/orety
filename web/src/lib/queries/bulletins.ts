@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEtabScope } from "@/lib/auth";
 
 export type BulletinListItem = {
   id: string;
@@ -32,21 +33,25 @@ export type BulletinListItem = {
 export async function getBulletins(): Promise<BulletinListItem[]> {
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
+  const scope = await getEtabScope();
+  const base = supabase
     .from("bulletins")
     .select(
       `id, inscription_id, periode_id, est_annuel, moyenne_generale, moyenne_classe, rang,
        effectif_classe, appreciation_generale, decision_conseil, publie, publie_le, pdf_url, cree_le,
        periodes_scolaires(libelle),
-       inscriptions(
+       inscriptions!inner(
          eleve_id, classe_id,
          eleves(nom, prenom, matricule),
-         classes(nom, niveaux(libelle, cycle)),
+         classes!inner(nom, niveaux!inner(libelle, cycle, etablissement_id)),
          annees_scolaires(libelle, active)
        )`
     )
     .is("archive_le", null)
     .order("cree_le", { ascending: false });
+  const { data, error } = await (scope
+    ? base.eq("inscriptions.classes.niveaux.etablissement_id", scope)
+    : base);
 
   if (error) {
     console.error("getBulletins:", error);
@@ -145,6 +150,7 @@ export async function getBulletinFormData() {
       .select(
         "id, nom, niveau_id, annee_scolaire_id, niveaux(libelle, cycle, etablissement_id), annees_scolaires(libelle, active)"
       )
+      .is("archive_le", null)
       .order("nom"),
     supabase
       .from("periodes_scolaires")
@@ -155,6 +161,7 @@ export async function getBulletinFormData() {
     supabase
       .from("annees_scolaires")
       .select("id, libelle, active")
+      .is("archive_le", null)
       .order("date_debut", { ascending: false }),
   ]);
 

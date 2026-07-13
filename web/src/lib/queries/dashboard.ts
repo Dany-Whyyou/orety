@@ -16,7 +16,6 @@ export type DashboardStats = {
     cycle: string;
     effectif: number;
     moyenne: number | null;
-    progression: number | null;
   }[];
   activite: { type: string; titre: string; detail: string; date: string }[];
   sante: {
@@ -55,15 +54,19 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .select("*, role:roles!inner(code)", { count: "exact", head: true })
       .eq("actif", true)
       .eq("role.code", "prof"),
-    supabase.from("classes").select("*", { count: "exact", head: true }),
+    supabase.from("classes").select("*", { count: "exact", head: true }).is("archive_le", null),
     supabase
       .from("annees_scolaires")
       .select("id, libelle")
       .eq("active", true)
       .limit(1)
       .maybeSingle(),
-    supabase.from("notes").select("note, bonus, evaluations(bareme)").limit(1000),
-    supabase.from("presences").select("statut").limit(2000),
+    supabase
+      .from("notes")
+      .select("note, bonus, evaluations!inner(bareme, archive_le)")
+      .is("evaluations.archive_le", null)
+      .limit(10000),
+    supabase.from("presences").select("statut").limit(10000),
     supabase
       .from("eleves")
       .select("etablissement_id, etablissements(cycle_principal)")
@@ -111,13 +114,15 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   ] = await Promise.all([
     supabase
       .from("inscriptions")
-      .select("date_inscription, classe_id, classes(nom, niveaux(cycle))")
+      .select("date_inscription, classe_id, classes!inner(nom, archive_le, niveaux(cycle))")
       .in("statut", ["inscrit", "reinscrit"])
+      .is("classes.archive_le", null)
       .limit(5000),
     supabase
       .from("bulletins")
       .select("moyenne_generale, publie, inscriptions(classe_id)")
       .eq("est_annuel", false)
+      .is("archive_le", null)
       .limit(5000),
     supabase
       .from("inscriptions")
@@ -127,16 +132,19 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     supabase
       .from("evaluations")
       .select("cree_le, titre, affectations(classes(nom))")
+      .is("archive_le", null)
       .order("cree_le", { ascending: false })
       .limit(3),
     supabase
       .from("annonces")
       .select("cree_le, titre")
+      .is("archive_le", null)
       .order("cree_le", { ascending: false })
       .limit(2),
     supabase
       .from("incidents")
       .select("cree_le, titre, gravite")
+      .is("archive_le", null)
       .order("cree_le", { ascending: false })
       .limit(2),
   ]);
@@ -227,7 +235,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
           cycle: c.cycle,
           effectif: c.effectif,
           moyenne: c.nMoy > 0 ? c.totalMoy / c.nMoy : null,
-          progression: null,
         }))
         .sort((a, b) => (b.moyenne ?? -1) - (a.moyenne ?? -1) || b.effectif - a.effectif)
         .slice(0, 5)

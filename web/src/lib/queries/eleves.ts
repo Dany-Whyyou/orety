@@ -153,16 +153,18 @@ export async function getEleves(): Promise<EleveListItem[]> {
 export async function getEleveFormData() {
   const supabase = createAdminClient();
   const [{ data: etabs }, { data: classes }, { data: annees }] = await Promise.all([
-    supabase.from("etablissements").select("id, nom").eq("actif", true).order("nom"),
+    supabase.from("etablissements").select("id, nom").eq("actif", true).is("archive_le", null).order("nom"),
     supabase
       .from("classes")
       .select(
         "id, nom, niveau_id, annee_scolaire_id, niveaux(libelle, etablissement_id, cycle), annees_scolaires(libelle, active)"
       )
+      .is("archive_le", null)
       .order("nom"),
     supabase
       .from("annees_scolaires")
       .select("id, libelle, active")
+      .is("archive_le", null)
       .order("date_debut", { ascending: false }),
   ]);
 

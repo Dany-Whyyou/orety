@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEtabScope } from "@/lib/auth";
 
 export type TypeEvaluationItem = {
   id: string;
@@ -99,17 +100,18 @@ export async function getTypesEvaluation(): Promise<TypeEvaluationItem[]> {
 
 export async function getEvaluations(): Promise<EvaluationItem[]> {
   const supabase = createAdminClient();
+  const scope = await getEtabScope();
 
-  const { data, error } = await supabase
+  const base = supabase
     .from("evaluations")
     .select(
       `id, titre, description, date_evaluation, bareme, poids, autorise_bonus, bonus_max, publiee,
        affectation_id, type_evaluation_id, periode_id,
        types_evaluation(libelle, couleur),
        periodes_scolaires(libelle),
-       affectations(
+       affectations!inner(
          classe_id, matiere_id, utilisateur_id, annee_scolaire_id,
-         classes(id, nom, niveaux(libelle, cycle)),
+         classes!inner(id, nom, niveaux!inner(libelle, cycle, etablissement_id)),
          matieres(id, nom, code, couleur),
          utilisateurs(pseudo, nom, prenom),
          annees_scolaires(libelle, active)
@@ -117,6 +119,9 @@ export async function getEvaluations(): Promise<EvaluationItem[]> {
     )
     .is("archive_le", null)
     .order("date_evaluation", { ascending: false });
+  const { data, error } = await (scope
+    ? base.eq("affectations.classes.niveaux.etablissement_id", scope)
+    : base);
 
   if (error) {
     console.error("getEvaluations:", error);
@@ -271,16 +276,20 @@ export async function getEvaluationFormData() {
         .from("types_evaluation")
         .select("id, libelle, code, poids_defaut, couleur, etablissement_id")
         .eq("actif", true)
+        .is("archive_le", null)
         .order("ordre"),
       supabase
         .from("affectations")
         .select(
           `id, utilisateur_id, classe_id, matiere_id, annee_scolaire_id,
-           classes(nom, niveaux(libelle, etablissement_id)),
+           classes!inner(nom, archive_le, niveaux(libelle, etablissement_id)),
            matieres(id, nom, code, couleur),
-           utilisateurs(pseudo, nom, prenom),
+           utilisateurs!inner(pseudo, nom, prenom, actif, archive_le),
            annees_scolaires(libelle, active)`
-        ),
+        )
+        .is("classes.archive_le", null)
+        .is("utilisateurs.archive_le", null)
+        .eq("utilisateurs.actif", true),
       supabase
         .from("periodes_scolaires")
         .select(
@@ -401,10 +410,11 @@ export async function getNotesForEvaluation(evaluationId: string): Promise<{
   // List inscrits in that classe for that year
   const { data: inscriptions } = await supabase
     .from("inscriptions")
-    .select("id, eleve_id, eleves(nom, prenom, matricule)")
+    .select("id, eleve_id, eleves!inner(nom, prenom, matricule, archive_le)")
     .eq("classe_id", classeId)
     .eq("annee_scolaire_id", anneeId)
-    .eq("statut", "inscrit");
+    .eq("statut", "inscrit")
+    .is("eleves.archive_le", null);
 
   // Existing notes
   const { data: notesData } = await supabase

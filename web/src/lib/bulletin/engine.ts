@@ -69,9 +69,10 @@ export async function computeBulletinsPourPeriode(
   // 1) Inscriptions inscrits dans la classe
   const { data: inscriptions } = await supabase
     .from("inscriptions")
-    .select("id, eleve_id, eleves(nom, prenom, matricule)")
+    .select("id, eleve_id, eleves!inner(nom, prenom, matricule, archive_le)")
     .eq("classe_id", classe_id)
-    .eq("statut", "inscrit");
+    .eq("statut", "inscrit")
+    .is("eleves.archive_le", null);
 
   if (!inscriptions || inscriptions.length === 0) return [];
 
@@ -152,7 +153,8 @@ export async function computeBulletinsPourPeriode(
     .from("evaluations")
     .select("id, bareme, poids, affectation_id, periode_id, affectations(utilisateur_id, classe_id, matiere_id)")
     .in("affectation_id", affIds)
-    .eq("periode_id", periode_id);
+    .eq("periode_id", periode_id)
+    .is("archive_le", null);
 
   const evaluations: EvaluationRaw[] = (evalsRaw ?? []).map((e) => {
     const aff = Array.isArray(e.affectations) ? e.affectations[0] : e.affectations;
@@ -310,6 +312,7 @@ export async function computeBulletinsAnnuels(
     .select("id, formule_annuelle_json, periodes_scolaires(id, numero)")
     .eq("etablissement_id", etablissement_id)
     .eq("annee_scolaire_id", annee_scolaire_id)
+    .is("archive_le", null)
     .single();
 
   if (!cfg) throw new Error("Configuration de bulletin non trouvée pour cet établissement/année");

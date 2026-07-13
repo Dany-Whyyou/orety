@@ -8,6 +8,7 @@ import {
   getRapportAnnuel,
 } from "@/lib/queries/rapport-annuel";
 import { cn } from "@/lib/utils";
+import { getBranding } from "@/lib/queries/organisation";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export default async function Page({
 }: {
   searchParams: Promise<{ annee?: string; etab?: string }>;
 }) {
+  const branding = await getBranding();
   const params = await searchParams;
   const annees = await getAnneesDisponibles();
   const etablissements = await getEtablissementsDispo();
@@ -84,14 +86,14 @@ export default async function Page({
             <PrintButton />
           </div>
 
-          <RapportContent rapport={rapport} />
+          <RapportContent devise={branding.devise} rapport={rapport} />
         </>
       )}
     </div>
   );
 }
 
-function RapportContent({ rapport: r }: { rapport: Awaited<ReturnType<typeof getRapportAnnuel>> }) {
+function RapportContent({ rapport: r, devise }: { rapport: Awaited<ReturnType<typeof getRapportAnnuel>>; devise: string }) {
   if (!r) return null;
   return (
     <article className="bg-white print:bg-white rounded-2xl border border-border/50 print:border-none overflow-hidden">
@@ -374,7 +376,7 @@ function RapportContent({ rapport: r }: { rapport: Awaited<ReturnType<typeof get
           <div>
             <p>Rapport généré le {new Date().toLocaleDateString("fr-FR")}</p>
             <p className="italic mt-1 font-semibold text-foreground">
-              « Persévérance — Excellence »
+              « {devise} »
             </p>
           </div>
           <div className="text-right">

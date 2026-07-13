@@ -59,12 +59,20 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const { data, error } = await admin
     .from("utilisateurs")
     .select(
-      "id, pseudo, nom, prenom, photo_url, email, organisation_id, etablissement_scope_id, roles:role_id ( code, libelle, niveau_hierarchique )"
+      "id, pseudo, nom, prenom, photo_url, email, organisation_id, etablissement_scope_id, actif, archive_le, roles:role_id ( code, libelle, niveau_hierarchique ), organisations:organisation_id ( actif )"
     )
     .eq("id", user.id)
     .single();
 
   if (error || !data) return null;
+
+  // Défense en profondeur : compte désactivé/archivé ou organisation
+  // suspendue = aucune session valide, même si le ban Auth a échoué.
+  if (!data.actif || data.archive_le) return null;
+  const organisation = Array.isArray(data.organisations)
+    ? data.organisations[0]
+    : data.organisations;
+  if (data.organisation_id && organisation && !organisation.actif) return null;
 
   const role = Array.isArray(data.roles) ? data.roles[0] : data.roles;
 

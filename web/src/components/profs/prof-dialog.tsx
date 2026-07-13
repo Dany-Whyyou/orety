@@ -290,11 +290,13 @@ export function CredentialsDialog({
   onOpenChange,
   pseudo,
   password,
+  nomEcole = "Complexe Scolaire Orety",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pseudo: string;
   password: string;
+  nomEcole?: string;
 }) {
   const [copiedField, setCopiedField] = React.useState<"pseudo" | "password" | null>(null);
 
@@ -347,8 +349,8 @@ export function CredentialsDialog({
           <div className="flex gap-2">
             <Button asChild variant="outline" size="sm">
               <a
-                href={`mailto:?subject=${encodeURIComponent("Vos accès Complexe Scolaire Orety")}&body=${encodeURIComponent(
-                  `Bonjour,\n\nVoici vos identifiants d'accès à la plateforme du Complexe Scolaire Orety :\n\nPseudo : ${pseudo}\nMot de passe : ${password}\n\nTéléchargez l'application ou connectez-vous en ligne, puis définissez votre code PIN à la première connexion.\n\nCordialement,\nLe secrétariat`
+                href={`mailto:?subject=${encodeURIComponent(`Vos accès ${nomEcole}`)}&body=${encodeURIComponent(
+                  `Bonjour,\n\nVoici vos identifiants d'accès à la plateforme ${nomEcole} :\n\nPseudo : ${pseudo}\nMot de passe : ${password}\n\nTéléchargez l'application ou connectez-vous en ligne, puis définissez votre code PIN à la première connexion.\n\nCordialement,\nLe secrétariat`
                 )}`}
               >
                 <Mail /> Email
@@ -357,7 +359,7 @@ export function CredentialsDialog({
             <Button asChild variant="outline" size="sm">
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
-                  `🏫 *Complexe Scolaire Orety* — vos accès :\n\n👤 Pseudo : ${pseudo}\n🔑 Mot de passe : ${password}\n\nDéfinissez votre code PIN à la première connexion.`
+                  `🏫 *${nomEcole}* — vos accès :\n\n👤 Pseudo : ${pseudo}\n🔑 Mot de passe : ${password}\n\nDéfinissez votre code PIN à la première connexion.`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

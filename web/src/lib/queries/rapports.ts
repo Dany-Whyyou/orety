@@ -37,11 +37,15 @@ export async function getRapportData(): Promise<RapportData> {
       .select("id, role:roles!inner(code)", { count: "exact", head: true })
       .eq("actif", true)
       .eq("role.code", "prof"),
-    supabase.from("classes").select("*", { count: "exact", head: true }),
-    supabase.from("evaluations").select("*", { count: "exact", head: true }),
-    supabase.from("bulletins").select("*", { count: "exact", head: true }),
-    supabase.from("notes").select("note, bonus, absent, evaluations(bareme)").limit(2000),
-    supabase.from("presences").select("statut").limit(5000),
+    supabase.from("classes").select("*", { count: "exact", head: true }).is("archive_le", null),
+    supabase.from("evaluations").select("*", { count: "exact", head: true }).is("archive_le", null),
+    supabase.from("bulletins").select("*", { count: "exact", head: true }).is("archive_le", null),
+    supabase
+      .from("notes")
+      .select("note, bonus, absent, evaluations!inner(bareme, archive_le)")
+      .is("evaluations.archive_le", null)
+      .limit(10000),
+    supabase.from("presences").select("statut").limit(10000),
     supabase
       .from("eleves")
       .select("etablissement_id, etablissements(cycle_principal)")
@@ -52,6 +56,7 @@ export async function getRapportData(): Promise<RapportData> {
         "moyenne_generale, inscriptions(classe_id, eleves(id, nom, prenom, matricule), classes(nom, niveaux(libelle, cycle)))"
       )
       .eq("est_annuel", false)
+      .is("archive_le", null)
       .not("moyenne_generale", "is", null),
     supabase
       .from("inscriptions")

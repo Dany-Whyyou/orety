@@ -1,10 +1,22 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { BulletinDetail } from "@/lib/queries/bulletins";
+import type { BulletinBranding } from "@/components/bulletins/bulletin-detail";
 
 const VERT: [number, number, number] = [27, 122, 67];
 const VERT_FONCE: [number, number, number] = [16, 74, 41];
 const GRIS: [number, number, number] = [100, 116, 139];
+
+function hexToRgb(hex: string | null | undefined): [number, number, number] | null {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex ?? "");
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function assombrir([r, g, b]: [number, number, number]): [number, number, number] {
+  return [Math.round(r * 0.6), Math.round(g * 0.6), Math.round(b * 0.6)];
+}
 
 function mention(m: number | null): string {
   if (m === null) return "—";
@@ -16,26 +28,31 @@ function mention(m: number | null): string {
 }
 
 /** Génère le PDF A4 du bulletin et le retourne en base64 (sans préfixe data:). */
-export function genererBulletinPdf(bulletin: BulletinDetail): {
+export function genererBulletinPdf(
+  bulletin: BulletinDetail,
+  branding: BulletinBranding & { couleur_primaire?: string | null }
+): {
   base64: string;
   filename: string;
 } {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const largeur = doc.internal.pageSize.getWidth();
+  const couleur = hexToRgb(branding.couleur_primaire) ?? VERT;
+  const couleurFoncee = hexToRgb(branding.couleur_primaire) ? assombrir(couleur) : VERT_FONCE;
 
   // ─── En-tête ───
-  doc.setFillColor(...VERT_FONCE);
+  doc.setFillColor(...couleurFoncee);
   doc.rect(0, 0, largeur, 34, "F");
-  doc.setFillColor(...VERT);
+  doc.setFillColor(...couleur);
   doc.rect(0, 30, largeur, 4, "F");
 
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(15);
-  doc.text("COMPLEXE SCOLAIRE ORETY", 14, 12);
+  doc.text(branding.nom.toUpperCase(), 14, 12);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text("Travail · Persévérance · Succès — BP 2110, Port-Gentil, Gabon", 14, 18);
+  doc.text(`${branding.devise} — ${branding.adresse}`, 14, 18);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
@@ -74,7 +91,7 @@ export function genererBulletinPdf(bulletin: BulletinDetail): {
       m.prof_nom ? `${m.prof_prenom ? m.prof_prenom[0] + ". " : ""}${m.prof_nom}` : "—",
     ]),
     styles: { fontSize: 8.5, cellPadding: 2.5, textColor: [30, 41, 59] },
-    headStyles: { fillColor: VERT, textColor: [255, 255, 255], fontStyle: "bold" },
+    headStyles: { fillColor: couleur, textColor: [255, 255, 255], fontStyle: "bold" },
     alternateRowStyles: { fillColor: [244, 250, 246] },
     columnStyles: {
       1: { halign: "center", cellWidth: 14 },
@@ -90,7 +107,7 @@ export function genererBulletinPdf(bulletin: BulletinDetail): {
   doc.roundedRect(14, y, largeur - 28, 18, 2, 2, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  doc.setTextColor(...VERT_FONCE);
+  doc.setTextColor(...couleurFoncee);
   doc.text(
     `Moyenne générale : ${bulletin.moyenne_generale !== null ? bulletin.moyenne_generale.toFixed(2) + " / 20" : "—"}`,
     18,
@@ -123,7 +140,7 @@ export function genererBulletinPdf(bulletin: BulletinDetail): {
   if (bulletin.decision_conseil) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.setTextColor(...VERT_FONCE);
+    doc.setTextColor(...couleurFoncee);
     doc.text(`Décision du conseil : ${bulletin.decision_conseil}`, 14, y);
     y += 8;
   }
@@ -137,7 +154,7 @@ export function genererBulletinPdf(bulletin: BulletinDetail): {
   doc.text(`Édité le ${new Date(bulletin.cree_le).toLocaleDateString("fr-FR")}`, 14, ySign + 10);
   doc.setFont("helvetica", "bolditalic");
   doc.setTextColor(30, 41, 59);
-  doc.text("« Persévérance — Excellence »", largeur - 14, ySign, { align: "right" });
+  doc.text(`« ${branding.devise} »`, largeur - 14, ySign, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...GRIS);
   doc.text("Signature du chef d'établissement", largeur - 14, ySign + 5, { align: "right" });

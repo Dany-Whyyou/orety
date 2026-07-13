@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEtabScope } from "@/lib/auth";
 
 export type PresenceStat = {
   eleve_id: string;
@@ -39,13 +40,18 @@ export async function getPresenceStats(): Promise<{
   const supabase = createAdminClient();
 
   // Fetch all presences with related data
-  const { data: presences } = await supabase
+  const scope = await getEtabScope();
+  const presencesBase = supabase
     .from("presences")
     .select(
       `id, statut, eleve_id, seance_id,
-       seances(affectation_id, affectations(classe_id, annee_scolaire_id, classes(nom, niveaux(libelle, cycle)), annees_scolaires(libelle, active))),
-       eleves(nom, prenom, matricule)`
-    );
+       seances!inner(affectation_id, affectations!inner(classe_id, annee_scolaire_id, classes!inner(nom, niveaux!inner(libelle, cycle, etablissement_id)), annees_scolaires(libelle, active))),
+       eleves!inner(nom, prenom, matricule, archive_le)`
+    )
+    .is("eleves.archive_le", null);
+  const { data: presences } = await (scope
+    ? presencesBase.eq("seances.affectations.classes.niveaux.etablissement_id", scope)
+    : presencesBase);
 
   type PresRow = {
     statut: string;

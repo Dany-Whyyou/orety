@@ -104,7 +104,10 @@ export async function deleteTypeEvaluation(id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
     const supabase = createAdminClient();
-    const { error } = await supabase.from("types_evaluation").update({ archive_le: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase
+      .from("types_evaluation")
+      .update({ archive_le: new Date().toISOString(), actif: false })
+      .eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/evaluations");
     return { ok: true };

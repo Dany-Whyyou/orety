@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEtabScope } from "@/lib/auth";
 
 export type RapportAnnuel = {
   annee_id: string;
@@ -55,16 +56,20 @@ export async function getAnneesDisponibles(): Promise<{ id: string; libelle: str
   const { data } = await supabase
     .from("annees_scolaires")
     .select("id, libelle, active, archivee")
+    .is("archive_le", null)
     .order("date_debut", { ascending: false });
   return data ?? [];
 }
 
 export async function getEtablissementsDispo(): Promise<{ id: string; nom: string }[]> {
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const scope = await getEtabScope();
+  const base = supabase
     .from("etablissements")
     .select("id, nom")
+    .is("archive_le", null)
     .order("nom");
+  const { data } = await (scope ? base.eq("id", scope) : base);
   return data ?? [];
 }
 
@@ -261,6 +266,7 @@ export async function getRapportAnnuel(
   let incidentQuery = supabase
     .from("incidents")
     .select("type, gravite, etablissement_id, date_incident")
+    .is("archive_le", null)
     .gte("date_incident", annee.date_debut)
     .lte("date_incident", annee.date_fin);
   if (etablissement_id) incidentQuery = incidentQuery.eq("etablissement_id", etablissement_id);
@@ -288,7 +294,8 @@ export async function getRapportAnnuel(
     .from("evaluations")
     .select(
       "id, bareme, affectations(utilisateur_id, classe_id, annees_scolaires(id), utilisateurs(nom, prenom))"
-    );
+    )
+    .is("archive_le", null);
 
   const profMap = new Map<string, { nom: string; nb_evaluations: number; classes: Set<string>; total_notes: number; count_notes: number }>();
   ((evaluations ?? []) as unknown as EvalRow[]).forEach((e) => {

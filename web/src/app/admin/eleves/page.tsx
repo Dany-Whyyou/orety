@@ -6,7 +6,12 @@ import { getParentsForPicker } from "@/lib/queries/parents";
 
 export const dynamic = "force-dynamic";
 
-export default async function ElevesPage() {
+export default async function ElevesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ recherche?: string }>;
+}) {
+  const { recherche } = await searchParams;
   const [eleves, formData, parents] = await Promise.all([
     getEleves(),
     getEleveFormData(),
@@ -26,6 +31,7 @@ export default async function ElevesPage() {
         breadcrumbs={[{ label: "Élèves" }]}
       />
       <ElevesTable
+        initialSearch={recherche ?? ""}
         eleves={eleves}
         etablissements={formData.etablissements}
         classes={formData.classes}

@@ -26,8 +26,8 @@ export async function getOrganisations(): Promise<OrganisationItem[]> {
   if (error || !orgs) return [];
 
   const [{ data: etabs }, { data: users }] = await Promise.all([
-    supabase.from("etablissements").select("id, organisation_id"),
-    supabase.from("utilisateurs").select("id, organisation_id"),
+    supabase.from("etablissements").select("id, organisation_id").is("archive_le", null),
+    supabase.from("utilisateurs").select("id, organisation_id").is("archive_le", null).eq("actif", true),
   ]);
 
   const etabIdsParOrg = new Map<string, string[]>();
@@ -85,6 +85,7 @@ export async function getUtilisateursSysteme(): Promise<UtilisateurSystemeItem[]
       "id, pseudo, nom, prenom, actif, dernier_login, roles:role_id!inner(code, libelle), organisations:organisation_id(nom)"
     )
     .in("roles.code", ["super_admin", "admin_org", "directeur_site", "secretariat"])
+    .is("archive_le", null)
     .order("nom");
   if (error || !data) return [];
 
@@ -126,17 +127,21 @@ export async function getStatsGlobales(): Promise<StatsGlobales> {
     { count: parents },
     { count: bulletins },
   ] = await Promise.all([
-    supabase.from("etablissements").select("*", { count: "exact", head: true }),
+    supabase.from("etablissements").select("*", { count: "exact", head: true }).is("archive_le", null),
     supabase.from("eleves").select("*", { count: "exact", head: true }).eq("actif", true),
     supabase
       .from("utilisateurs")
       .select("*, roles:role_id!inner(code)", { count: "exact", head: true })
-      .eq("roles.code", "prof"),
+      .eq("roles.code", "prof")
+      .eq("actif", true)
+      .is("archive_le", null),
     supabase
       .from("utilisateurs")
       .select("*, roles:role_id!inner(code)", { count: "exact", head: true })
-      .eq("roles.code", "parent"),
-    supabase.from("bulletins").select("*", { count: "exact", head: true }),
+      .eq("roles.code", "parent")
+      .eq("actif", true)
+      .is("archive_le", null),
+    supabase.from("bulletins").select("*", { count: "exact", head: true }).is("archive_le", null),
   ]);
 
   return {

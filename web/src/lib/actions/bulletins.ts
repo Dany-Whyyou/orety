@@ -76,10 +76,11 @@ export async function generateBulletinsClasse(raw: unknown): Promise<ActionResul
     let nbGenerated = 0;
 
     for (const c of computed) {
-      // Delete existing bulletin (regeneration)
+      // Régénération : l'ancien bulletin est archivé (conformité), jamais supprimé
       await supabase
         .from("bulletins")
-        .delete()
+        .update({ archive_le: new Date().toISOString() })
+        .is("archive_le", null)
         .eq("inscription_id", c.inscription_id)
         .match(
           input.est_annuel

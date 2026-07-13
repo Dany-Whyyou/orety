@@ -7,9 +7,15 @@ import { getMesNotifications } from "@/lib/actions/notifications";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/admin");
-  // Le dashboard est réservé au personnel administratif : un parent ou un prof
-  // authentifié ne doit pas pouvoir afficher les pages (qui lisent via service role).
-  if (!ROLES_ADMINISTRATIFS.includes(user.role?.code ?? "")) redirect("/");
+  // Le dashboard est réservé au personnel : rôles administratifs système, ou
+  // rôles sur mesure (comptable, surveillant…) au-dessus du niveau prof (20).
+  // Parents et profs passent par les apps mobiles.
+  const roleCode = user.role?.code ?? "";
+  const estPersonnalise = !["super_admin", "admin_org", "directeur_site", "secretariat", "prof", "parent"].includes(roleCode);
+  const accesDashboard =
+    ROLES_ADMINISTRATIFS.includes(roleCode) ||
+    (estPersonnalise && (user.role?.niveau_hierarchique ?? 0) > 20);
+  if (!accesDashboard) redirect("/");
 
   const { items: notifications, non_lues } = await getMesNotifications();
 

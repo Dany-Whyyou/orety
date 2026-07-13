@@ -1,16 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { TrendingUp, Users, LibraryBig } from "lucide-react";
+import { Users, LibraryBig } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 export type TopClass = {
   nom: string;
   cycle: string;
   effectif: number;
   moyenne: number | null;
-  progression: number | null;
 };
 
 type TopClassesProps = {
@@ -83,13 +81,6 @@ export function TopClasses({ classes = [] }: TopClassesProps) {
                     {c.moyenne !== null && <span>Moy. {c.moyenne.toFixed(1)}/20</span>}
                   </div>
                 </div>
-                {c.progression !== null && (
-                  <Badge variant={c.progression >= 0 ? "success" : "danger"} className="gap-0.5 text-[10px] font-mono">
-                    <TrendingUp className={`size-2.5 ${c.progression < 0 ? "rotate-180" : ""}`} />
-                    {c.progression >= 0 ? "+" : ""}
-                    {c.progression.toFixed(1)}
-                  </Badge>
-                )}
               </motion.div>
             ))
           )}

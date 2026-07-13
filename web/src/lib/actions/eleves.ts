@@ -201,19 +201,28 @@ export async function updateEleve(id: string, raw: unknown): Promise<EleveAction
       .eq("id", id);
     if (error) return { ok: false, error: error.message };
 
-    // Handle inscription — replace current-year inscription if new one provided
+    // Inscription de l'année : on met à jour la ligne existante (les bulletins
+    // la référencent — jamais de delete/recréation)
     if (input.annee_scolaire_id && input.classe_id) {
-      await supabase
+      const { data: existante } = await supabase
         .from("inscriptions")
-        .delete()
+        .select("id")
         .eq("eleve_id", id)
-        .eq("annee_scolaire_id", input.annee_scolaire_id);
-      await supabase.from("inscriptions").insert({
-        eleve_id: id,
-        annee_scolaire_id: input.annee_scolaire_id,
-        classe_id: input.classe_id,
-        statut: "inscrit",
-      });
+        .eq("annee_scolaire_id", input.annee_scolaire_id)
+        .maybeSingle();
+      if (existante) {
+        await supabase
+          .from("inscriptions")
+          .update({ classe_id: input.classe_id, statut: "inscrit" })
+          .eq("id", existante.id);
+      } else {
+        await supabase.from("inscriptions").insert({
+          eleve_id: id,
+          annee_scolaire_id: input.annee_scolaire_id,
+          classe_id: input.classe_id,
+          statut: "inscrit",
+        });
+      }
     }
 
     revalidatePath("/admin/eleves");
@@ -246,7 +255,18 @@ export async function deleteEleve(id: string): Promise<EleveActionResult> {
       .update({ archive_le: new Date().toISOString(), actif: false })
       .eq("id", id);
     if (error) return { ok: false, error: error.message };
+
+    // Un élève archivé sort des effectifs : ses inscriptions encore actives
+    // passent en "abandonne" (il disparaît des classes, notes, bulletins,
+    // clôture) — les inscriptions historiques restent intactes.
+    await supabase
+      .from("inscriptions")
+      .update({ statut: "abandonne" })
+      .eq("eleve_id", id)
+      .in("statut", ["inscrit", "reinscrit"]);
+
     revalidatePath("/admin/eleves");
+    revalidatePath("/admin");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur" };

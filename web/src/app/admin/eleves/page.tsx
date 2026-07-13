@@ -13,6 +13,7 @@ export default async function ElevesPage({
     recherche?: string;
     page?: string;
     etablissement?: string;
+    cycle?: string;
     statut?: string;
   }>;
 }) {
@@ -26,6 +27,7 @@ export default async function ElevesPage({
       page,
       recherche: params.recherche,
       etablissement_id: params.etablissement,
+      cycle: params.cycle,
       statut,
     }),
     getEleveFormData(),
@@ -52,6 +54,7 @@ export default async function ElevesPage({
         filtres={{
           recherche: params.recherche ?? "",
           etablissement: params.etablissement ?? "tous",
+          cycle: params.cycle ?? "tous",
           statut: params.statut ?? "tous",
         }}
         etablissements={formData.etablissements}

@@ -40,6 +40,8 @@ export async function createAnnonce(raw: unknown): Promise<ActionResult> {
     if (input.cible === "classe" && !input.classe_id) {
       return { ok: false, error: "Sélectionnez une classe" };
     }
+    if (input.etablissement_id) await assertOwned(user, "etablissements", input.etablissement_id);
+    if (input.classe_id) await assertOwned(user, "classes", input.classe_id);
 
     const { data: annonce, error } = await supabase
       .from("annonces")
@@ -76,6 +78,8 @@ export async function updateAnnonce(id: string, raw: unknown): Promise<ActionRes
     const user = await requireAuth();
     await assertOwned(user, "annonces", id);
     const input = schema.parse(raw);
+    if (input.etablissement_id) await assertOwned(user, "etablissements", input.etablissement_id);
+    if (input.classe_id) await assertOwned(user, "classes", input.classe_id);
     const supabase = createAdminClient();
 
     const { data: avant } = await supabase

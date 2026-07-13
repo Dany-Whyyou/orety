@@ -1,5 +1,7 @@
 "use server";
 
+import { STATUTS_ACTIFS } from "@/lib/statuts";
+
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -52,13 +54,24 @@ export async function generateBulletinsClasse(raw: unknown): Promise<ActionResul
     const user = await requireAdmin();
     const input = generateSchema.parse(raw);
     await assertOwned(user, "classes", input.classe_id);
+    if (input.etablissement_id) await assertOwned(user, "etablissements", input.etablissement_id);
+    if (input.annee_scolaire_id) await assertOwned(user, "annees_scolaires", input.annee_scolaire_id);
     const supabase = createAdminClient();
 
     let computed;
+    let baseNote = 20;
     if (input.est_annuel) {
       if (!input.etablissement_id || !input.annee_scolaire_id) {
         return { ok: false, error: "Établissement et année requis pour le bulletin annuel" };
       }
+      const { data: cfgAnnee } = await supabase
+        .from("config_bulletins")
+        .select("note_maximale")
+        .eq("etablissement_id", input.etablissement_id)
+        .eq("annee_scolaire_id", input.annee_scolaire_id)
+        .is("archive_le", null)
+        .maybeSingle();
+      baseNote = cfgAnnee?.note_maximale ?? 20;
       computed = await computeBulletinsAnnuels(
         input.classe_id,
         input.annee_scolaire_id,
@@ -68,7 +81,18 @@ export async function generateBulletinsClasse(raw: unknown): Promise<ActionResul
       if (!input.periode_id) {
         return { ok: false, error: "Période requise" };
       }
-      computed = await computeBulletinsPourPeriode(input.classe_id, input.periode_id);
+      // La note maximale de l'établissement doit s'appliquer aussi aux bulletins
+      // de période (sinon : trimestres sur 20 et bulletin annuel sur 10).
+      const { data: cfgPeriode } = await supabase
+        .from("periodes_scolaires")
+        .select("config_bulletins(note_maximale)")
+        .eq("id", input.periode_id)
+        .maybeSingle();
+      const cfg = Array.isArray(cfgPeriode?.config_bulletins)
+        ? cfgPeriode?.config_bulletins[0]
+        : cfgPeriode?.config_bulletins;
+      baseNote = cfg?.note_maximale ?? 20;
+      computed = await computeBulletinsPourPeriode(input.classe_id, input.periode_id, baseNote);
     }
 
     if (computed.length === 0) {
@@ -81,7 +105,7 @@ export async function generateBulletinsClasse(raw: unknown): Promise<ActionResul
       // Régénération : l'ancien bulletin est archivé (conformité), jamais supprimé
       await supabase
         .from("bulletins")
-        .update({ archive_le: new Date().toISOString() })
+        .update({ archive_le: new Date().toISOString(), publie: false })
         .is("archive_le", null)
         .eq("inscription_id", c.inscription_id)
         .match(
@@ -101,7 +125,7 @@ export async function generateBulletinsClasse(raw: unknown): Promise<ActionResul
           moyenne_classe: c.moyenne_classe,
           rang: c.rang,
           effectif_classe: c.effectif_classe,
-          appreciation_generale: generateAppreciation(c.moyenne_generale),
+          appreciation_generale: generateAppreciation(c.moyenne_generale, baseNote),
           publie: false,
         })
         .select("id")
@@ -175,7 +199,7 @@ export async function publishBulletinsLot(
       .from("inscriptions")
       .select("id")
       .eq("classe_id", classe_id)
-      .eq("statut", "inscrit");
+      .in("statut", STATUTS_ACTIFS);
     const ids = (inscIds ?? []).map((i) => i.id);
     if (ids.length === 0) return { ok: false, error: "Aucune inscription dans cette classe" };
     const q2 = query.in("inscription_id", ids);
@@ -194,7 +218,10 @@ export async function deleteBulletin(id: string): Promise<ActionResult> {
     const user = await requireAdmin();
     await assertOwned(user, "bulletins", id);
     const supabase = createAdminClient();
-    const { error } = await supabase.from("bulletins").update({ archive_le: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase
+      .from("bulletins")
+      .update({ archive_le: new Date().toISOString(), publie: false })
+      .eq("id", id);
     if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/bulletins");
     return { ok: true };
@@ -282,16 +309,53 @@ export async function enregistrerBulletinPdf(
       .upload(chemin, contenu, { contentType: "application/pdf", upsert: true });
     if (upErr) return { ok: false, error: messageErreur(upErr) };
 
-    const { data: pub } = supabase.storage.from("bulletins").getPublicUrl(chemin);
-
+    // Bucket PRIVÉ : on stocke le chemin, jamais une URL publique (un bulletin
+    // porte des données nominatives et ne doit pas être téléchargeable par
+    // quiconque devine l'UUID).
     const { error } = await supabase
       .from("bulletins")
-      .update({ pdf_url: pub.publicUrl })
+      .update({ pdf_url: chemin })
       .eq("id", bulletinId);
     if (error) return { ok: false, error: messageErreur(error) };
 
+    const { data: signee } = await supabase.storage
+      .from("bulletins")
+      .createSignedUrl(chemin, 60 * 60); // 1 h
+
     revalidatePath("/admin/bulletins");
-    return { ok: true, url: pub.publicUrl };
+    return { ok: true, url: signee?.signedUrl };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur" };
+  }
+}
+
+
+/** URL signée (1 h) d'un PDF de bulletin déjà généré. Le bucket est privé. */
+export async function getBulletinPdfUrl(
+  bulletinId: string
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  try {
+    const user = await requireAdmin();
+    await assertOwned(user, "bulletins", bulletinId);
+    const supabase = createAdminClient();
+
+    const { data: bulletin } = await supabase
+      .from("bulletins")
+      .select("pdf_url")
+      .eq("id", bulletinId)
+      .single();
+    if (!bulletin?.pdf_url) return { ok: false, error: "Aucun PDF généré pour ce bulletin" };
+
+    // Rétrocompat : d'anciennes lignes portent une URL publique complète
+    const chemin = bulletin.pdf_url.includes("/storage/v1/object/public/bulletins/")
+      ? bulletin.pdf_url.split("/storage/v1/object/public/bulletins/")[1]
+      : bulletin.pdf_url;
+
+    const { data, error } = await supabase.storage
+      .from("bulletins")
+      .createSignedUrl(chemin, 60 * 60);
+    if (error || !data) return { ok: false, error: "Lien indisponible" };
+    return { ok: true, url: data.signedUrl };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur" };
   }

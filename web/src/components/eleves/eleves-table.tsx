@@ -64,7 +64,7 @@ type Props = {
   total: number;
   page: number;
   pageCount: number;
-  filtres: { recherche: string; etablissement: string; statut: string };
+  filtres: { recherche: string; etablissement: string; cycle: string; statut: string };
   etablissements: { id: string; nom: string }[];
   classes: Classe[];
   annees: { id: string; libelle: string; active: boolean }[];
@@ -93,8 +93,6 @@ const filters = [
   { key: "college", label: "Collège" },
   { key: "lycee", label: "Lycée" },
 ] as const;
-
-const PAGE_SIZE = 25;
 
 function exportCsv(rows: EleveListItem[]) {
   const header = [
@@ -141,6 +139,7 @@ export function ElevesTable({
       const etat: Record<string, string | number | undefined> = {
         recherche: filtres.recherche || undefined,
         etablissement: filtres.etablissement !== "tous" ? filtres.etablissement : undefined,
+        cycle: filtres.cycle !== "tous" ? filtres.cycle : undefined,
         statut: filtres.statut !== "tous" ? filtres.statut : undefined,
         page: page || undefined,
         ...maj,
@@ -194,9 +193,10 @@ export function ElevesTable({
 
   const currentPage = page;
   const pageRows = eleves;
-  const filtered = eleves;
   const nbFiltresActifs =
     (filtres.etablissement !== "tous" ? 1 : 0) + (filtres.statut !== "tous" ? 1 : 0);
+  const aucunFiltre =
+    !filtres.recherche && filtres.cycle === "tous" && nbFiltresActifs === 0;
 
   return (
     <>
@@ -206,11 +206,35 @@ export function ElevesTable({
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un nom, matricule, classe, clé parentale…"
+            placeholder="Rechercher un nom, prénom, matricule, clé parentale…"
             className="pl-10"
           />
         </div>
 
+
+        <div className="flex items-center gap-1 p-1 rounded-lg bg-card/60 border border-border/50 backdrop-blur">
+          {filters.map((c) => {
+            const active = filtres.cycle === c.key;
+            return (
+              <button
+                key={c.key}
+                onClick={() => naviguer({ cycle: c.key, page: undefined })}
+                className={`relative px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  active ? "text-white" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="eleves-cycle-pill"
+                    className="absolute inset-0 rounded-md bg-gradient-to-r from-primary to-accent"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className="relative">{c.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
         <Button
           variant={nbFiltresActifs > 0 ? "secondary" : "outline"}
@@ -271,7 +295,7 @@ export function ElevesTable({
             variant="ghost"
             size="sm"
             disabled={nbFiltresActifs === 0}
-            onClick={() => naviguer({ etablissement: undefined, statut: undefined, page: undefined })}
+            onClick={() => naviguer({ etablissement: undefined, statut: undefined, cycle: undefined, page: undefined })}
           >
             Réinitialiser
           </Button>
@@ -284,7 +308,11 @@ export function ElevesTable({
         transition={{ duration: 0.3, delay: 0.1 }}
         className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/60 backdrop-blur-xl"
       >
-        {eleves.length === 0 ? (
+        {total === 0 && !aucunFiltre ? (
+          <div className="p-12 text-center text-sm text-muted-foreground">
+            Aucun élève ne correspond à cette recherche.
+          </div>
+        ) : eleves.length === 0 ? (
           <div className="py-16 flex flex-col items-center justify-center gap-4 text-center">
             <div className="size-14 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-primary">
               <UserPlus className="size-6" />
@@ -394,11 +422,7 @@ export function ElevesTable({
               </table>
             </div>
 
-            {filtered.length === 0 && (
-              <div className="p-12 text-center text-sm text-muted-foreground">
-                Aucun élève ne correspond à cette recherche.
-              </div>
-            )}
+
 
             <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 text-xs text-muted-foreground">
               <span>

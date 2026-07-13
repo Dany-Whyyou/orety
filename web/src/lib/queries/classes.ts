@@ -1,4 +1,5 @@
 import "server-only";
+import { STATUTS_ACTIFS } from "@/lib/statuts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEtabScope } from "@/lib/auth";
 
@@ -48,7 +49,7 @@ export async function getClasses(): Promise<ClasseItem[]> {
     .from("inscriptions")
     .select("classe_id")
     .in("classe_id", classIds.length ? classIds : ["00000000-0000-0000-0000-000000000000"])
-    .eq("statut", "inscrit");
+    .in("statut", STATUTS_ACTIFS);
   const effectifMap = new Map<string, number>();
   (inscData ?? []).forEach((i) => {
     effectifMap.set(i.classe_id, (effectifMap.get(i.classe_id) ?? 0) + 1);

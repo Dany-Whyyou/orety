@@ -4,9 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertOwned, messageErreur } from "@/lib/authz";
-import type { Database } from "@/lib/supabase/database.types";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
-import { getClotureState, getProchaineAnnee, type DecisionFinAnnee } from "@/lib/queries/cloture";
+import { getClotureState, type DecisionFinAnnee } from "@/lib/queries/cloture";
 
 const decisionSchema = z.object({
   inscription_id: z.string().uuid(),
@@ -28,18 +27,6 @@ async function requireAdmin() {
   }
   return user;
 }
-
-const STATUT_FROM_DECISION: Record<
-  DecisionFinAnnee,
-  Database["public"]["Enums"]["statut_inscription"]
-> = {
-  admis: "admis",
-  redouble: "redouble",
-  diplome: "diplome",
-  exclu: "exclu",
-  transfere: "transfere",
-  abandonne: "abandonne",
-};
 
 /** Enregistre une décision individuelle */
 export async function saveDecision(raw: unknown): Promise<ActionResult> {
@@ -168,7 +155,27 @@ export async function cloturerAnnee(annee_id: string): Promise<ActionResult> {
       };
     }
 
-    // 1) Snapshot par établissement
+    // 2-5) Statuts, désactivations, pré-inscriptions et archivage :
+    //      une seule transaction SQL, atomique et idempotente (un échec ne peut
+    //      plus laisser l'année à moitié clôturée).
+    const rpc = supabase as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{
+        data: { nb_statuts: number; nb_desactives: number; nb_preinscrits: number }[] | null;
+        error: { message: string } | null;
+      }>;
+    };
+    const { data: resultat, error: clotureErr } = await rpc.rpc("cloturer_annee", {
+      p_annee_id: annee_id,
+      p_organisation_id: user.organisation_id,
+    });
+    if (clotureErr) return { ok: false, error: messageErreur(clotureErr) };
+    const bilan = resultat?.[0];
+
+
+    // 6) Snapshots d'archives (non destructifs, apres la transaction)
     const parEtab = new Map<string, {
       nom: string;
       effectif: number;
@@ -229,7 +236,7 @@ export async function cloturerAnnee(annee_id: string): Promise<ActionResult> {
         ? ((stats.nb_admis + stats.nb_diplomes) / totalSortants) * 100
         : null;
 
-      await supabase.from("archives_annee").upsert(
+      const { error: archiveErr } = await supabase.from("archives_annee").upsert(
         {
           organisation_id: user.organisation_id!,
           annee_scolaire_id: annee_id,
@@ -248,26 +255,13 @@ export async function cloturerAnnee(annee_id: string): Promise<ActionResult> {
         },
         { onConflict: "annee_scolaire_id,etablissement_id" }
       );
+      if (archiveErr) {
+        return {
+          ok: false,
+          error: "Annee cloturee, mais l'archive n'a pas pu etre enregistree : " + archiveErr.message,
+        };
+      }
     }
-
-    // 2-5) Statuts, désactivations, pré-inscriptions et archivage :
-    //      une seule transaction SQL, atomique et idempotente (un échec ne peut
-    //      plus laisser l'année à moitié clôturée).
-    const rpc = supabase as unknown as {
-      rpc: (
-        fn: string,
-        args: Record<string, unknown>
-      ) => Promise<{
-        data: { nb_statuts: number; nb_desactives: number; nb_preinscrits: number }[] | null;
-        error: { message: string } | null;
-      }>;
-    };
-    const { data: resultat, error: clotureErr } = await rpc.rpc("cloturer_annee", {
-      p_annee_id: annee_id,
-      p_organisation_id: user.organisation_id,
-    });
-    if (clotureErr) return { ok: false, error: messageErreur(clotureErr) };
-    const bilan = resultat?.[0];
 
     revalidatePath("/admin/annees");
     revalidatePath("/admin/archives");

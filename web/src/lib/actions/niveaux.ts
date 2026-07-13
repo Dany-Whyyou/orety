@@ -48,6 +48,7 @@ export async function updateNiveau(id: string, raw: unknown): Promise<ActionResu
     const user = await requireAdmin();
     await assertOwned(user, "niveaux", id);
     const input = schema.parse(raw);
+    await assertOwned(user, "etablissements", input.etablissement_id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("niveaux").update(input).eq("id", id);
     if (error) return { ok: false, error: messageErreur(error) };
@@ -105,7 +106,8 @@ export async function generateNiveauxForCycle(
   cycle: (typeof CYCLES)[number]
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "etablissements", etablissement_id);
     const supabase = createAdminClient();
     const presets = CYCLE_PRESETS[cycle];
     const { data: existing } = await supabase

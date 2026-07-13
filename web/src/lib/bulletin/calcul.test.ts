@@ -196,12 +196,22 @@ describe("moyenneDeClasse", () => {
 });
 
 describe("appreciationAuto", () => {
-  it("suit les paliers", () => {
-    expect(appreciationAuto(17)).toContain("Très bon");
-    expect(appreciationAuto(14)).toContain("Bon travail");
-    expect(appreciationAuto(12)).toContain("satisfaisant");
-    expect(appreciationAuto(10)).toContain("justes");
-    expect(appreciationAuto(8)).toContain("insuffisants");
-    expect(appreciationAuto(null)).toBeNull();
+  it("suit les paliers sur 20", () => {
+    expect(appreciationAuto(17)).toContain("Excellent");
+    expect(appreciationAuto(14.5)).toContain("Très bons");
+    expect(appreciationAuto(12.5)).toContain("Bon travail");
+    expect(appreciationAuto(10.5)).toContain("corrects");
+    expect(appreciationAuto(8.5)).toContain("insuffisants");
+    expect(appreciationAuto(5)).toContain("difficile");
+  });
+
+  it("les seuils suivent la note maximale (école notant sur 10)", () => {
+    // 8,5/10 = 85 % → même palier que 17/20, et non « en difficulté »
+    expect(appreciationAuto(8.5, 10)).toContain("Excellent");
+    expect(appreciationAuto(5.5, 10)).toContain("corrects");
+  });
+
+  it("gère l'absence de note", () => {
+    expect(appreciationAuto(null)).toContain("Pas de note");
   });
 });

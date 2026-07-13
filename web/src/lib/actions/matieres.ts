@@ -100,8 +100,10 @@ export async function deleteMatiere(id: string): Promise<ActionResult> {
 
 export async function setCoefficient(raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
     const input = coefSchema.parse(raw);
+    await assertOwned(user, "matieres", input.matiere_id);
+    await assertOwned(user, "niveaux", input.niveau_id);
     const supabase = createAdminClient();
 
     if (input.coefficient === 0) {

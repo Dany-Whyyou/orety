@@ -72,6 +72,14 @@ export async function createProf(raw: unknown): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
     const input = profSchema.parse(raw);
+    // Les établissements/matières viennent du client : les rattacher sans
+    // vérification donnerait au prof l'accès RLS aux élèves d'une autre école.
+    for (const eid of input.etablissement_ids) {
+      await assertOwned(admin, "etablissements", eid);
+    }
+    for (const mid of input.matiere_ids) {
+      await assertOwned(admin, "matieres", mid);
+    }
 
     const supabase = createAdminClient();
     const authClient = createAuthClient();
@@ -173,6 +181,14 @@ export async function updateProf(utilisateur_id: string, raw: unknown): Promise<
     const cibleErr = await assertCibleGerable(user, utilisateur_id, "prof");
     if (cibleErr) return { ok: false, error: cibleErr };
     const input = profSchema.parse(raw);
+    // Les établissements/matières viennent du client : les rattacher sans
+    // vérification donnerait au prof l'accès RLS aux élèves d'une autre école.
+    for (const eid of input.etablissement_ids) {
+      await assertOwned(user, "etablissements", eid);
+    }
+    for (const mid of input.matiere_ids) {
+      await assertOwned(user, "matieres", mid);
+    }
     const supabase = createAdminClient();
 
     // Update utilisateurs

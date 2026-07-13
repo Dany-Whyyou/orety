@@ -1,4 +1,5 @@
 import "server-only";
+import { STATUTS_ACTIFS } from "@/lib/statuts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEtabsVisibles } from "@/lib/auth";
 
@@ -87,7 +88,7 @@ export async function getRapportData(): Promise<RapportData> {
     supabase
       .from("inscriptions")
       .select("id, date_inscription, eleves(etablissement_id, etablissements(cycle_principal))")
-      .eq("statut", "inscrit"),
+      .in("statut", STATUTS_ACTIFS),
   ]);
 
   // Agrégats SQL (toutes les lignes, absents exclus)

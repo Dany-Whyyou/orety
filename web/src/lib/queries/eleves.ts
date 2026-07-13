@@ -1,4 +1,5 @@
 import "server-only";
+import { STATUTS_ACTIFS } from "@/lib/statuts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEtabScope } from "@/lib/auth";
 
@@ -39,6 +40,7 @@ export type ElevesOptions = {
   page?: number;
   recherche?: string;
   etablissement_id?: string;
+  cycle?: string;
   statut?: "actif" | "inactif";
 };
 
@@ -68,7 +70,7 @@ export async function getEleves(opts: ElevesOptions = {}): Promise<ElevesResulta
       id, matricule, nom, prenom, photo_url, actif, cle_parentale,
       etablissement_id, date_naissance, sexe, adresse, lieu_naissance, nationalite,
       tel_urgence, personne_urgence, infos_medicales, infos_allergies,
-      etablissements(nom, cycle_principal),
+      etablissements!inner(nom, cycle_principal),
       inscriptions(
         statut,
         classe_id,
@@ -85,10 +87,15 @@ export async function getEleves(opts: ElevesOptions = {}): Promise<ElevesResulta
   if (etab && etab !== "tous") requete = requete.eq("etablissement_id", etab);
   if (opts.statut === "actif") requete = requete.eq("actif", true);
   if (opts.statut === "inactif") requete = requete.eq("actif", false);
+  const CYCLES = ["prescolaire", "primaire", "college", "lycee"] as const;
+  type Cycle = (typeof CYCLES)[number];
+  if (opts.cycle && (CYCLES as readonly string[]).includes(opts.cycle)) {
+    requete = requete.eq("etablissements.cycle_principal", opts.cycle as Cycle);
+  }
 
   // Caractères réservés de la syntaxe `or=` de PostgREST
   const terme = (opts.recherche ?? "").trim().replace(/[,()".%_\\]/g, " ").trim();
-  if (terme.length >= 2) {
+  if (terme.length >= 1) {
     const like = `%${terme}%`;
     requete = requete.or(
       `nom.ilike.${like},prenom.ilike.${like},matricule.ilike.${like},cle_parentale.ilike.${like}`
@@ -135,7 +142,7 @@ export async function getEleves(opts: ElevesOptions = {}): Promise<ElevesResulta
     const etab = Array.isArray(e.etablissements) ? e.etablissements[0] : e.etablissements;
     const activeInscription = (e.inscriptions ?? []).find((i) => {
       const annee = Array.isArray(i.annees_scolaires) ? i.annees_scolaires[0] : i.annees_scolaires;
-      return annee?.active && i.statut === "inscrit";
+      return annee?.active && (STATUTS_ACTIFS as readonly string[]).includes(i.statut);
     });
     const classe = activeInscription
       ? Array.isArray(activeInscription.classes)

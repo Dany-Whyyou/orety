@@ -1,4 +1,5 @@
 import "server-only";
+import { STATUTS_ACTIFS } from "@/lib/statuts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEtabScope } from "@/lib/auth";
 
@@ -155,7 +156,7 @@ export async function getEvaluations(): Promise<EvaluationItem[]> {
     .from("inscriptions")
     .select("classe_id")
     .in("classe_id", [...classeIds].length ? [...classeIds] : ["_none_"])
-    .eq("statut", "inscrit");
+    .in("statut", STATUTS_ACTIFS);
   const effectifByClasse = new Map<string, number>();
   (inscData ?? []).forEach((i) => {
     effectifByClasse.set(i.classe_id, (effectifByClasse.get(i.classe_id) ?? 0) + 1);
@@ -413,7 +414,7 @@ export async function getNotesForEvaluation(evaluationId: string): Promise<{
     .select("id, eleve_id, eleves!inner(nom, prenom, matricule, archive_le)")
     .eq("classe_id", classeId)
     .eq("annee_scolaire_id", anneeId)
-    .eq("statut", "inscrit")
+    .in("statut", STATUTS_ACTIFS)
     .is("eleves.archive_le", null);
 
   // Existing notes

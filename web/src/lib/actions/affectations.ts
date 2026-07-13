@@ -31,6 +31,8 @@ export async function createAffectation(raw: unknown): Promise<ActionResult> {
     const input = schema.parse(raw);
     await assertOwned(user, "classes", input.classe_id);
     await assertOwned(user, "utilisateurs", input.utilisateur_id);
+    await assertOwned(user, "annees_scolaires", input.annee_scolaire_id);
+    if (input.matiere_id) await assertOwned(user, "matieres", input.matiere_id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("affectations").insert({
       utilisateur_id: input.utilisateur_id,
@@ -60,6 +62,9 @@ export async function updateAffectation(id: string, raw: unknown): Promise<Actio
     await assertOwned(user, "affectations", id);
     const input = schema.parse(raw);
     await assertOwned(user, "classes", input.classe_id);
+    await assertOwned(user, "utilisateurs", input.utilisateur_id);
+    await assertOwned(user, "annees_scolaires", input.annee_scolaire_id);
+    if (input.matiere_id) await assertOwned(user, "matieres", input.matiere_id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("affectations")

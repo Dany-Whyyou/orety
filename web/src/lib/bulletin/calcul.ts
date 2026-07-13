@@ -133,12 +133,18 @@ export function moyenneDeClasse(moyennes: (number | null)[]): number | null {
   return valides.reduce((a, b) => a + b, 0) / valides.length;
 }
 
-/** Appréciation automatique en fonction de la moyenne (sur 20). */
-export function appreciationAuto(moyenne: number | null): string | null {
-  if (moyenne === null) return null;
-  if (moyenne >= 16) return "Très bon travail, félicitations.";
-  if (moyenne >= 14) return "Bon travail, continuez ainsi.";
-  if (moyenne >= 12) return "Travail satisfaisant, des progrès sont possibles.";
-  if (moyenne >= 10) return "Résultats justes, un effort soutenu est attendu.";
-  return "Résultats insuffisants, un travail sérieux est indispensable.";
+/**
+ * Appréciation automatique. Les seuils sont exprimés en pourcentage de la note
+ * maximale : une école notant sur 10 obtient les mêmes paliers qu'une école
+ * notant sur 20 (avant, tout le monde était « en difficulté » avec /10).
+ */
+export function appreciationAuto(moyenne: number | null, baseNote = 20): string {
+  if (moyenne === null) return "Pas de note sur cette période.";
+  const pct = baseNote > 0 ? (moyenne / baseNote) * 100 : 0;
+  if (pct >= 80) return "Excellent travail, résultats remarquables.";
+  if (pct >= 70) return "Très bons résultats, continuez ainsi.";
+  if (pct >= 60) return "Bon travail, résultats satisfaisants.";
+  if (pct >= 50) return "Résultats corrects, des progrès sont possibles.";
+  if (pct >= 40) return "Résultats insuffisants, des efforts sont à fournir.";
+  return "Période difficile, un soutien est nécessaire.";
 }

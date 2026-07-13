@@ -33,6 +33,7 @@ export async function createClasse(raw: unknown): Promise<ActionResult> {
     const input = schema.parse(raw);
     await assertOwned(user, "niveaux", input.niveau_id);
     await assertOwned(user, "annees_scolaires", input.annee_scolaire_id);
+    if (input.titulaire_utilisateur_id) await assertOwned(user, "utilisateurs", input.titulaire_utilisateur_id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("classes").insert({
       annee_scolaire_id: input.annee_scolaire_id,
@@ -59,6 +60,8 @@ export async function updateClasse(id: string, raw: unknown): Promise<ActionResu
     await assertOwned(user, "classes", id);
     const input = schema.parse(raw);
     await assertOwned(user, "niveaux", input.niveau_id);
+    await assertOwned(user, "annees_scolaires", input.annee_scolaire_id);
+    if (input.titulaire_utilisateur_id) await assertOwned(user, "utilisateurs", input.titulaire_utilisateur_id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("classes")

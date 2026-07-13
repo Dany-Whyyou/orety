@@ -130,7 +130,8 @@ const DEFAULT_TYPES: Array<{ code: string; libelle: string; poids_defaut: number
 
 export async function generateDefaultTypes(etablissement_id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "etablissements", etablissement_id);
     const supabase = createAdminClient();
     const { data: existing } = await supabase
       .from("types_evaluation")
@@ -158,6 +159,7 @@ export async function createEvaluation(raw: unknown): Promise<ActionResult> {
     const user = await requireAdmin();
     const input = evalSchema.parse(raw);
     await assertOwned(user, "affectations", input.affectation_id);
+    await assertOwned(user, "types_evaluation", input.type_evaluation_id);
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("evaluations")
@@ -191,6 +193,8 @@ export async function updateEvaluation(id: string, raw: unknown): Promise<Action
     const user = await requireAdmin();
     await assertOwned(user, "evaluations", id);
     const input = evalSchema.parse(raw);
+    await assertOwned(user, "affectations", input.affectation_id);
+    await assertOwned(user, "types_evaluation", input.type_evaluation_id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("evaluations")
@@ -218,7 +222,8 @@ export async function updateEvaluation(id: string, raw: unknown): Promise<Action
 
 export async function togglePubliee(id: string, publiee: boolean): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "evaluations", id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("evaluations")
@@ -240,7 +245,10 @@ export async function deleteEvaluation(id: string): Promise<ActionResult> {
     const user = await requireAdmin();
     await assertOwned(user, "evaluations", id);
     const supabase = createAdminClient();
-    const { error } = await supabase.from("evaluations").update({ archive_le: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase
+      .from("evaluations")
+      .update({ archive_le: new Date().toISOString(), publiee: false })
+      .eq("id", id);
     if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/evaluations");
     return { ok: true };

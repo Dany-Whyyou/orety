@@ -1,6 +1,8 @@
 import "server-only";
+import { STATUTS_ACTIFS } from "@/lib/statuts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  appreciationAuto,
   calculerRangs,
   moyenneAnnuelle as calcMoyenneAnnuelle,
   moyenneDeClasse,
@@ -81,7 +83,7 @@ export async function computeBulletinsPourPeriode(
     .from("inscriptions")
     .select("id, eleve_id, eleves!inner(nom, prenom, matricule, archive_le)")
     .eq("classe_id", classe_id)
-    .eq("statut", "inscrit")
+    .in("statut", STATUTS_ACTIFS)
     .is("eleves.archive_le", null);
 
   if (!inscriptions || inscriptions.length === 0) return [];
@@ -399,12 +401,6 @@ export async function computeBulletinsAnnuels(
 /**
  * Auto-generate appreciation from a score.
  */
-export function generateAppreciation(moyenne: number | null): string {
-  if (moyenne === null) return "Pas de note ce trimestre.";
-  if (moyenne >= 16) return "Excellent travail, résultats remarquables.";
-  if (moyenne >= 14) return "Très bon trimestre, continuez ainsi.";
-  if (moyenne >= 12) return "Bon travail, résultats satisfaisants.";
-  if (moyenne >= 10) return "Résultats corrects, des progrès possibles.";
-  if (moyenne >= 8) return "Résultats insuffisants, efforts à fournir.";
-  return "Trimestre difficile, un soutien est nécessaire.";
+export function generateAppreciation(moyenne: number | null, baseNote = 20): string {
+  return appreciationAuto(moyenne, baseNote);
 }

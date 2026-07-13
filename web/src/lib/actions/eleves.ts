@@ -87,6 +87,9 @@ export async function createEleve(raw: unknown): Promise<EleveActionResult> {
     const user = await requireAdmin();
     const input = eleveSchema.parse(raw);
     await assertOwned(user, "etablissements", input.etablissement_id);
+    if (input.classe_id) await assertOwned(user, "classes", input.classe_id);
+    if (input.annee_scolaire_id) await assertOwned(user, "annees_scolaires", input.annee_scolaire_id);
+    if (input.parent_utilisateur_id) await assertOwned(user, "utilisateurs", input.parent_utilisateur_id);
     const supabase = createAdminClient();
 
     let clePseudo: string | null = null;
@@ -175,6 +178,9 @@ export async function updateEleve(id: string, raw: unknown): Promise<EleveAction
     await assertOwned(user, "eleves", id);
     const input = eleveUpdateSchema.parse(raw);
     await assertOwned(user, "etablissements", input.etablissement_id);
+    if (input.classe_id) await assertOwned(user, "classes", input.classe_id);
+    if (input.annee_scolaire_id) await assertOwned(user, "annees_scolaires", input.annee_scolaire_id);
+    await assertOwned(user, "utilisateurs", input.parent_utilisateur_id);
     const supabase = createAdminClient();
 
     const { data: parent } = await supabase

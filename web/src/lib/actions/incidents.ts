@@ -116,6 +116,7 @@ export async function updateIncident(id: string, raw: unknown): Promise<ActionRe
     const user = await requireAuth();
     await assertOwned(user, "incidents", id);
     const input = updateSchema.parse(raw);
+    await assertOwned(user, "eleves", input.eleve_id);
     const supabase = createAdminClient();
 
     // Check if notifie_parent changed from false to true
@@ -212,8 +213,12 @@ export async function uploadIncidentPhoto(file: FormData): Promise<
     const photo = file.get("file") as File | null;
     if (!photo) return { ok: false, error: "Aucun fichier" };
     if (photo.size > 10 * 1024 * 1024) return { ok: false, error: "Photo trop lourde (max 10 Mo)" };
-    if (!photo.type.startsWith("image/"))
-      return { ok: false, error: "Seules les images sont acceptées" };
+    // Le Content-Type vient du client : on n'autorise que des formats bitmap
+    // explicites (un SVG accepté = XSS stockée sur le domaine Storage).
+    const FORMATS = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+    if (!FORMATS.includes(photo.type)) {
+      return { ok: false, error: "Formats acceptés : JPEG, PNG, WebP, HEIC" };
+    }
 
     const supabase = createAdminClient();
     const ext = (photo.name.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
@@ -224,8 +229,11 @@ export async function uploadIncidentPhoto(file: FormData): Promise<
       .upload(path, photo, { contentType: photo.type, upsert: false });
     if (error) return { ok: false, error: messageErreur(error) };
 
-    const { data } = supabase.storage.from("incidents").getPublicUrl(path);
-    return { ok: true, url: data.publicUrl };
+    // Bucket privé : URL signée longue (les photos d'incident sont sensibles)
+    const { data } = await supabase.storage
+      .from("incidents")
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
+    return { ok: true, url: data?.signedUrl ?? "" };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur" };
   }

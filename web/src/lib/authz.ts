@@ -176,3 +176,58 @@ export async function estProprietaire(
     return false;
   }
 }
+
+/**
+ * Vérifie qu'un compte cible est bien du rôle attendu ET strictement moins
+ * privilégié que l'appelant. Empêche par exemple un secrétariat de gérer (ou
+ * de réinitialiser le mot de passe d')un compte admin via l'écran des parents.
+ * Retourne un message d'erreur, ou null si tout va bien.
+ */
+export async function assertCibleGerable(
+  user: CurrentUser,
+  utilisateur_id: string,
+  roleAttendu: string
+): Promise<string | null> {
+  const supabase = createAdminClient();
+  const { data: cible } = await supabase
+    .from("utilisateurs")
+    .select("id, roles:role_id(code, niveau_hierarchique)")
+    .eq("id", utilisateur_id)
+    .maybeSingle();
+  if (!cible) return "Compte introuvable";
+
+  const role = Array.isArray(cible.roles) ? cible.roles[0] : cible.roles;
+  if (role?.code !== roleAttendu) return `Ce compte n'est pas un compte ${roleAttendu}`;
+
+  if (user.role?.code === "super_admin") return null;
+  const monNiveau = user.role?.niveau_hierarchique ?? 0;
+  if ((role?.niveau_hierarchique ?? 0) >= monNiveau) {
+    return "Vous ne pouvez pas agir sur un compte de niveau supérieur ou égal au vôtre";
+  }
+  return null;
+}
+
+/** Traduit les erreurs Postgres courantes en messages lisibles par le secrétariat. */
+export function messageErreur(erreur: { message: string; code?: string } | string): string {
+  const msg = typeof erreur === "string" ? erreur : erreur.message;
+  const code = typeof erreur === "string" ? undefined : erreur.code;
+
+  if (code === "23505" || msg.includes("duplicate key")) {
+    if (msg.includes("matricule")) return "Ce matricule est déjà utilisé par un autre élève.";
+    if (msg.includes("pseudo")) return "Ce pseudo est déjà utilisé.";
+    if (msg.includes("slug")) return "Ce slug est déjà utilisé.";
+    if (msg.includes("classe") || msg.includes("nom")) return "Un élément portant ce nom existe déjà.";
+    if (msg.includes("code")) return "Ce code est déjà utilisé.";
+    return "Cet élément existe déjà.";
+  }
+  if (code === "23503" || msg.includes("violates foreign key")) {
+    return "Cet élément est encore lié à d'autres données et ne peut pas être modifié ainsi.";
+  }
+  if (code === "23514" || msg.includes("violates check constraint")) {
+    return "Une valeur saisie n'est pas valide.";
+  }
+  if (msg.includes("Permission refusée") || msg.includes("Ressource introuvable")) {
+    return "Vous n'avez pas accès à cet élément.";
+  }
+  return msg;
+}

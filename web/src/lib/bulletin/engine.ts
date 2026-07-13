@@ -62,9 +62,12 @@ type NoteRaw = {
 
 export async function computeBulletinsPourPeriode(
   classe_id: string,
-  periode_id: string
+  periode_id: string,
+  noteMaximale?: number
 ): Promise<BulletinCompute[]> {
   const supabase = createAdminClient();
+  // Barème de restitution des bulletins (config de l'établissement, /20 par défaut)
+  const baseNote = noteMaximale && noteMaximale > 0 ? noteMaximale : 20;
 
   // 1) Inscriptions inscrits dans la classe
   const { data: inscriptions } = await supabase
@@ -90,9 +93,10 @@ export async function computeBulletinsPourPeriode(
   // 3) Affectations de la classe (prof × matière)
   const { data: affectations } = await supabase
     .from("affectations")
-    .select("id, utilisateur_id, matiere_id, classe_id, matieres(id, nom, code)")
+    .select("id, utilisateur_id, matiere_id, classe_id, matieres!inner(id, nom, code, archive_le)")
     .eq("classe_id", classe_id)
-    .eq("annee_scolaire_id", classe.annee_scolaire_id);
+    .eq("annee_scolaire_id", classe.annee_scolaire_id)
+    .is("matieres.archive_le", null);
 
   // 4) Matières enseignées dans la classe (via affectations)
   const matieresMap = new Map<string, { id: string; nom: string; code: string; prof_utilisateur_id: string | null }>();
@@ -191,6 +195,7 @@ export async function computeBulletinsPourPeriode(
     const matieresOut: BulletinMatiereCompute[] = [];
 
     for (const [matiereId, mat] of matieresMap.entries()) {
+      // Coefficient absent = 1 par défaut ; coefficient 0 explicite = matière neutralisée
       const coef = coefMap.get(matiereId) ?? 1;
       const evalsMatiere = evaluations.filter((e) => e.matiere_id === matiereId);
 
@@ -200,7 +205,7 @@ export async function computeBulletinsPourPeriode(
       for (const ev of evalsMatiere) {
         const n = notes.find((x) => x.evaluation_id === ev.id && x.eleve_id === insc.eleve_id);
         if (!n || n.absent || n.note === null) continue;
-        const surVingt = ((n.note + (n.bonus ?? 0)) / ev.bareme) * 20;
+        const surVingt = ((n.note + (n.bonus ?? 0)) / ev.bareme) * baseNote;
         sum += surVingt * ev.poids;
         sumPoids += ev.poids;
         nbContributed += 1;
@@ -309,7 +314,7 @@ export async function computeBulletinsAnnuels(
   // Fetch config bulletin + periodes
   const { data: cfg } = await supabase
     .from("config_bulletins")
-    .select("id, formule_annuelle_json, periodes_scolaires(id, numero)")
+    .select("id, formule_annuelle_json, note_maximale, periodes_scolaires(id, numero)")
     .eq("etablissement_id", etablissement_id)
     .eq("annee_scolaire_id", annee_scolaire_id)
     .is("archive_le", null)
@@ -327,10 +332,11 @@ export async function computeBulletinsAnnuels(
   );
   if (periodes.length === 0) throw new Error("Aucune période configurée");
 
-  // Pour chaque période, calculer les bulletins
+  // Pour chaque période, calculer les bulletins (avec la note maximale configurée)
+  const noteMaximale = (cfg as { note_maximale?: number | null }).note_maximale ?? 20;
   const byPeriode: BulletinCompute[][] = [];
   for (const p of periodes) {
-    byPeriode.push(await computeBulletinsPourPeriode(classe_id, p.id));
+    byPeriode.push(await computeBulletinsPourPeriode(classe_id, p.id, noteMaximale));
   }
 
   const first = byPeriode[0];
@@ -356,6 +362,7 @@ export async function computeBulletinsAnnuels(
     for (const mat of eleve.matieres) {
       let sum = 0;
       let sumPoids = 0;
+      let toutesPeriodesNotees = true;
       for (let i = 0; i < byPeriode.length; i++) {
         const p = poids[i] ?? 0;
         if (p === 0) continue;
@@ -364,9 +371,15 @@ export async function computeBulletinsAnnuels(
         if (entryMat?.moyenne !== null && entryMat?.moyenne !== undefined) {
           sum += entryMat.moyenne * p;
           sumPoids += p;
+        } else {
+          toutesPeriodesNotees = false;
         }
       }
-      mat.moyenne = sumPoids > 0 ? sum / sumPoids : null;
+      // Formule configurée (ex. (P1 + P2*2 + P3*2) / 6) : on applique le DIVISEUR
+      // validé par la direction. Si une période manque, on retombe sur la somme
+      // des poids réellement notés pour ne pas sous-évaluer l'élève.
+      const diviseurMat = toutesPeriodesNotees ? diviseur : sumPoids;
+      mat.moyenne = sumPoids > 0 && diviseurMat > 0 ? sum / diviseurMat : null;
       mat.nb_evaluations = byPeriode.reduce((acc, bp) => {
         const entryEleve = bp.find((x) => x.inscription_id === eleve.inscription_id);
         const entryMat = entryEleve?.matieres.find((m) => m.matiere_id === mat.matiere_id);

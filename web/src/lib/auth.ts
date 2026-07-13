@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -48,7 +49,7 @@ export function pseudoToEmail(pseudo: string) {
 }
 
 /** Retourne l'utilisateur courant ou null, avec son rôle. */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -89,4 +90,24 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     organisation_id: data.organisation_id,
     etablissement_scope_id: data.etablissement_scope_id,
   };
+});
+
+/**
+ * Ids des établissements visibles par l'utilisateur courant : ceux de son
+ * organisation, restreints à son site si c'est un directeur_site.
+ * Sert à scoper les vues agrégées (dashboard, rapports) qui passent par le
+ * service role et contournent donc les RLS.
+ */
+export async function getEtabsVisibles(): Promise<string[]> {
+  const user = await getCurrentUser();
+  if (!user?.organisation_id) return [];
+  if (user.etablissement_scope_id) return [user.etablissement_scope_id];
+
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("etablissements")
+    .select("id")
+    .eq("organisation_id", user.organisation_id)
+    .is("archive_le", null);
+  return (data ?? []).map((e) => e.id);
 }

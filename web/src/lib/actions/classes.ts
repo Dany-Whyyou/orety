@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const schema = z.object({
@@ -29,8 +29,10 @@ async function requireAdmin() {
 
 export async function createClasse(raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
     const input = schema.parse(raw);
+    await assertOwned(user, "niveaux", input.niveau_id);
+    await assertOwned(user, "annees_scolaires", input.annee_scolaire_id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("classes").insert({
       annee_scolaire_id: input.annee_scolaire_id,
@@ -41,7 +43,7 @@ export async function createClasse(raw: unknown): Promise<ActionResult> {
       capacite_max: input.capacite_max,
       titulaire_utilisateur_id: input.titulaire_utilisateur_id,
     });
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/classes");
     revalidatePath("/admin");
     return { ok: true };
@@ -56,6 +58,7 @@ export async function updateClasse(id: string, raw: unknown): Promise<ActionResu
     const user = await requireAdmin();
     await assertOwned(user, "classes", id);
     const input = schema.parse(raw);
+    await assertOwned(user, "niveaux", input.niveau_id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("classes")
@@ -69,7 +72,7 @@ export async function updateClasse(id: string, raw: unknown): Promise<ActionResu
         titulaire_utilisateur_id: input.titulaire_utilisateur_id,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/classes");
     return { ok: true };
   } catch (e) {
@@ -84,7 +87,7 @@ export async function deleteClasse(id: string): Promise<ActionResult> {
     await assertOwned(user, "classes", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("classes").update({ archive_le: new Date().toISOString() }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/classes");
     return { ok: true };
   } catch (e) {

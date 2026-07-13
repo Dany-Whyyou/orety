@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_ADMINISTRATIFS } from "@/lib/auth";
 import { generateParentPseudo, createParent } from "@/lib/actions/parents";
 
@@ -84,8 +84,9 @@ async function generateMatricule(etablissement_id: string): Promise<string> {
 
 export async function createEleve(raw: unknown): Promise<EleveActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
     const input = eleveSchema.parse(raw);
+    await assertOwned(user, "etablissements", input.etablissement_id);
     const supabase = createAdminClient();
 
     let clePseudo: string | null = null;
@@ -142,7 +143,7 @@ export async function createEleve(raw: unknown): Promise<EleveActionResult> {
       .select("id")
       .single();
 
-    if (insertErr) return { ok: false, error: insertErr.message };
+    if (insertErr) return { ok: false, error: messageErreur(insertErr) };
 
     // Optional inscription
     if (input.annee_scolaire_id && input.classe_id) {
@@ -173,6 +174,7 @@ export async function updateEleve(id: string, raw: unknown): Promise<EleveAction
     const user = await requireAdmin();
     await assertOwned(user, "eleves", id);
     const input = eleveUpdateSchema.parse(raw);
+    await assertOwned(user, "etablissements", input.etablissement_id);
     const supabase = createAdminClient();
 
     const { data: parent } = await supabase
@@ -201,7 +203,7 @@ export async function updateEleve(id: string, raw: unknown): Promise<EleveAction
         cle_parentale: parent.pseudo,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     // Inscription de l'année : on met à jour la ligne existante (les bulletins
     // la référencent — jamais de delete/recréation)
@@ -251,7 +253,7 @@ export async function toggleEleveActif(id: string, actif: boolean): Promise<Elev
     await assertOwned(user, "eleves", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("eleves").update({ actif }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/eleves");
     return { ok: true };
   } catch (e) {
@@ -268,7 +270,7 @@ export async function deleteEleve(id: string): Promise<EleveActionResult> {
       .from("eleves")
       .update({ archive_le: new Date().toISOString(), actif: false })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     // Un élève archivé sort des effectifs : ses inscriptions encore actives
     // passent en "abandonne" (il disparaît des classes, notes, bulletins,

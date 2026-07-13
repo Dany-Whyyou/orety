@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_ADMINISTRATIFS } from "@/lib/auth";
 
 const schema = z.object({
@@ -96,7 +96,7 @@ export async function createIncident(raw: unknown): Promise<ActionResult> {
       .select("id")
       .single();
 
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     if (input.notifie_parent) {
       await notifyParent(input.eleve_id, data.id, input.titre);
@@ -146,7 +146,7 @@ export async function updateIncident(id: string, raw: unknown): Promise<ActionRe
             : undefined,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     if (shouldNotifyNow) {
       await notifyParent(input.eleve_id, id, input.titre);
@@ -169,7 +169,7 @@ export async function updateIncidentStatut(
     await assertOwned(user, "incidents", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("incidents").update({ statut }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/incidents");
     return { ok: true };
   } catch (e) {
@@ -192,7 +192,7 @@ export async function deleteIncident(id: string): Promise<ActionResult> {
       .from("incidents")
       .update({ archive_le: new Date().toISOString() })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/incidents");
     return { ok: true };
   } catch (e) {
@@ -222,7 +222,7 @@ export async function uploadIncidentPhoto(file: FormData): Promise<
     const { error } = await supabase.storage
       .from("incidents")
       .upload(path, photo, { contentType: photo.type, upsert: false });
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     const { data } = supabase.storage.from("incidents").getPublicUrl(path);
     return { ok: true, url: data.publicUrl };

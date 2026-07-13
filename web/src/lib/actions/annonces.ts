@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_ADMINISTRATIFS } from "@/lib/auth";
 
 const schema = z.object({
@@ -57,7 +57,7 @@ export async function createAnnonce(raw: unknown): Promise<ActionResult> {
       })
       .select("id")
       .single();
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     if (input.publiee && annonce) {
       await notifierAnnonce(annonce.id, user.organisation_id!, input.titre, user.id);
@@ -104,7 +104,7 @@ export async function updateAnnonce(id: string, raw: unknown): Promise<ActionRes
       .eq("id", id)
       .select("id, titre, organisation_id")
       .single();
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     // Passage brouillon → publiée via le formulaire d'édition : on notifie aussi
     if (input.publiee && avant && !avant.publiee && annonce) {
@@ -130,7 +130,7 @@ export async function toggleAnnoncePubliee(id: string, publiee: boolean): Promis
       .eq("id", id)
       .select("id, titre, organisation_id")
       .single();
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     if (publiee && annonce) {
       await notifierAnnonce(annonce.id, annonce.organisation_id, annonce.titre, user.id);
@@ -191,7 +191,7 @@ export async function deleteAnnonce(id: string): Promise<ActionResult> {
       .from("annonces")
       .update({ archive_le: new Date().toISOString(), publiee: false })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/communications");
     return { ok: true };
   } catch (e) {

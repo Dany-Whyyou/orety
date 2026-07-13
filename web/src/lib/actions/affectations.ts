@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const schema = z.object({
@@ -27,8 +27,10 @@ async function requireAdmin() {
 
 export async function createAffectation(raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
     const input = schema.parse(raw);
+    await assertOwned(user, "classes", input.classe_id);
+    await assertOwned(user, "utilisateurs", input.utilisateur_id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("affectations").insert({
       utilisateur_id: input.utilisateur_id,
@@ -41,7 +43,7 @@ export async function createAffectation(raw: unknown): Promise<ActionResult> {
       if (error.code === "23505") {
         return { ok: false, error: "Cette affectation existe déjà" };
       }
-      return { ok: false, error: error.message };
+      return { ok: false, error: messageErreur(error) };
     }
     revalidatePath("/admin/affectations");
     revalidatePath("/admin");
@@ -57,6 +59,7 @@ export async function updateAffectation(id: string, raw: unknown): Promise<Actio
     const user = await requireAdmin();
     await assertOwned(user, "affectations", id);
     const input = schema.parse(raw);
+    await assertOwned(user, "classes", input.classe_id);
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("affectations")
@@ -68,7 +71,7 @@ export async function updateAffectation(id: string, raw: unknown): Promise<Actio
         heures_semaine: input.heures_semaine,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/affectations");
     return { ok: true };
   } catch (e) {
@@ -84,18 +87,32 @@ export async function deleteAffectation(id: string): Promise<ActionResult> {
     const supabase = createAdminClient();
     // Une affectation portant des évaluations fait partie de l'historique
     // pédagogique : suppression refusée (conformité).
-    const { count } = await supabase
-      .from("evaluations")
-      .select("*", { count: "exact", head: true })
-      .eq("affectation_id", id);
+    const [{ count }, { count: nbSeances }] = await Promise.all([
+      supabase
+        .from("evaluations")
+        .select("*", { count: "exact", head: true })
+        .eq("affectation_id", id),
+      supabase
+        .from("seances")
+        .select("*", { count: "exact", head: true })
+        .eq("affectation_id", id),
+    ]);
     if ((count ?? 0) > 0) {
       return {
         ok: false,
         error: `Impossible : ${count} évaluation(s) sont rattachées à cette affectation`,
       };
     }
+    // Les séances cascadent sur les présences : supprimer détruirait l'historique
+    // d'appel (interdit par la politique d'archivage).
+    if ((nbSeances ?? 0) > 0) {
+      return {
+        ok: false,
+        error: `Impossible : ${nbSeances} séance(s) et leurs présences sont rattachées à cette affectation`,
+      };
+    }
     const { error } = await supabase.from("affectations").delete().eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/affectations");
     return { ok: true };
   } catch (e) {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const CYCLES = ["prescolaire", "primaire", "college", "lycee"] as const;
@@ -29,11 +29,12 @@ async function requireAdmin() {
 
 export async function createNiveau(raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
     const input = schema.parse(raw);
+    await assertOwned(user, "etablissements", input.etablissement_id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("niveaux").insert(input);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/niveaux");
     return { ok: true };
   } catch (e) {
@@ -49,7 +50,7 @@ export async function updateNiveau(id: string, raw: unknown): Promise<ActionResu
     const input = schema.parse(raw);
     const supabase = createAdminClient();
     const { error } = await supabase.from("niveaux").update(input).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/niveaux");
     return { ok: true };
   } catch (e) {
@@ -64,7 +65,7 @@ export async function deleteNiveau(id: string): Promise<ActionResult> {
     await assertOwned(user, "niveaux", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("niveaux").update({ archive_le: new Date().toISOString() }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/niveaux");
     return { ok: true };
   } catch (e) {
@@ -118,7 +119,7 @@ export async function generateNiveauxForCycle(
       .map((p) => ({ ...p, cycle, etablissement_id }));
     if (toInsert.length === 0) return { ok: false, error: "Tous les niveaux de ce cycle existent déjà" };
     const { error } = await supabase.from("niveaux").insert(toInsert);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/niveaux");
     return { ok: true };
   } catch (e) {

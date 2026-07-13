@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const typeSchema = z.object({
@@ -36,8 +36,8 @@ const evalSchema = z.object({
 const noteSchema = z.object({
   evaluation_id: z.string().uuid(),
   eleve_id: z.string().uuid(),
-  note: z.number().nullable(),
-  bonus: z.number().min(0),
+  note: z.number().min(0).max(100).nullable(),
+  bonus: z.number().min(0).max(50),
   absent: z.boolean(),
   commentaire: z.string().max(500).optional().or(z.literal("")).nullable(),
 });
@@ -57,8 +57,9 @@ async function requireAdmin() {
 
 export async function createTypeEvaluation(raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
     const input = typeSchema.parse(raw);
+    await assertOwned(user, "etablissements", input.etablissement_id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("types_evaluation").insert({
       etablissement_id: input.etablissement_id,
@@ -68,7 +69,7 @@ export async function createTypeEvaluation(raw: unknown): Promise<ActionResult> 
       couleur: input.couleur || null,
       ordre: input.ordre,
     });
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/evaluations");
     return { ok: true };
   } catch (e) {
@@ -93,7 +94,7 @@ export async function updateTypeEvaluation(id: string, raw: unknown): Promise<Ac
         ordre: input.ordre,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/evaluations");
     return { ok: true };
   } catch (e) {
@@ -111,7 +112,7 @@ export async function deleteTypeEvaluation(id: string): Promise<ActionResult> {
       .from("types_evaluation")
       .update({ archive_le: new Date().toISOString(), actif: false })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/evaluations");
     return { ok: true };
   } catch (e) {
@@ -142,7 +143,7 @@ export async function generateDefaultTypes(etablissement_id: string): Promise<Ac
     }));
     if (toInsert.length === 0) return { ok: false, error: "Tous les types standards existent déjà" };
     const { error } = await supabase.from("types_evaluation").insert(toInsert);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/evaluations");
     return { ok: true };
   } catch (e) {
@@ -175,7 +176,7 @@ export async function createEvaluation(raw: unknown): Promise<ActionResult> {
       })
       .select("id")
       .single();
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/evaluations");
     revalidatePath("/admin");
     return { ok: true, id: data.id };
@@ -206,7 +207,7 @@ export async function updateEvaluation(id: string, raw: unknown): Promise<Action
         bonus_max: input.autorise_bonus ? input.bonus_max : null,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/evaluations");
     return { ok: true };
   } catch (e) {
@@ -226,7 +227,7 @@ export async function togglePubliee(id: string, publiee: boolean): Promise<Actio
         publiee_le: publiee ? new Date().toISOString() : null,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/evaluations");
     return { ok: true };
   } catch (e) {
@@ -240,7 +241,7 @@ export async function deleteEvaluation(id: string): Promise<ActionResult> {
     await assertOwned(user, "evaluations", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("evaluations").update({ archive_le: new Date().toISOString() }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/evaluations");
     return { ok: true };
   } catch (e) {
@@ -257,6 +258,33 @@ export async function saveNote(raw: unknown): Promise<ActionResult> {
     await assertOwned(user, "evaluations", input.evaluation_id);
     await assertOwned(user, "eleves", input.eleve_id);
     const supabase = createAdminClient();
+
+    // Bornes : une note hors barème (155 au lieu de 15) corromprait la moyenne
+    // de l'élève, celle de la classe, les rangs et le bulletin annuel.
+    const { data: evaluation } = await supabase
+      .from("evaluations")
+      .select("bareme, autorise_bonus, bonus_max")
+      .eq("id", input.evaluation_id)
+      .single();
+    if (!evaluation) return { ok: false, error: "Évaluation introuvable" };
+
+    if (input.note !== null && !input.absent) {
+      if (input.note < 0 || input.note > Number(evaluation.bareme)) {
+        return {
+          ok: false,
+          error: `La note doit être comprise entre 0 et ${evaluation.bareme}`,
+        };
+      }
+    }
+    if (input.bonus > 0) {
+      if (!evaluation.autorise_bonus) {
+        return { ok: false, error: "Le bonus n'est pas autorisé sur cette évaluation" };
+      }
+      const maxBonus = Number(evaluation.bonus_max ?? 0);
+      if (maxBonus > 0 && input.bonus > maxBonus) {
+        return { ok: false, error: `Le bonus ne peut pas dépasser ${maxBonus}` };
+      }
+    }
 
     // Upsert-style: check if exists
     const { data: existing } = await supabase
@@ -278,7 +306,7 @@ export async function saveNote(raw: unknown): Promise<ActionResult> {
           saisie_le: new Date().toISOString(),
         })
         .eq("id", existing.id);
-      if (error) return { ok: false, error: error.message };
+      if (error) return { ok: false, error: messageErreur(error) };
       revalidatePath("/admin/evaluations");
       return { ok: true, id: existing.id };
     }
@@ -297,7 +325,7 @@ export async function saveNote(raw: unknown): Promise<ActionResult> {
       })
       .select("id")
       .single();
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/evaluations");
     return { ok: true, id: data.id };
   } catch (e) {

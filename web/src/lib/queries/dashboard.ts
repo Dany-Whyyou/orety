@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEtabsVisibles } from "@/lib/auth";
 
 export type DashboardStats = {
   eleves: number;
@@ -38,23 +39,52 @@ function cycleGroupe(cycle: string | null | undefined): "primaire" | "college" |
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   const supabase = createAdminClient();
+  const etabs = await getEtabsVisibles();
+  // Moyenne et taux de présence calculés en SQL sur TOUTES les lignes
+  // (PostgREST plafonne les selects à 1000 lignes → chiffres faux sinon).
+  type Agregats = {
+    moyenne_generale: number | null;
+    taux_presence: number | null;
+    nb_notes: number;
+    nb_presences: number;
+  };
+  const rpc = supabase as unknown as {
+    rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: Agregats[] | null }>;
+  };
+  const { data: agregats } = await rpc.rpc("stats_agregees", { p_etab_ids: etabs });
+  const stats = agregats?.[0] ?? null;
+  if (etabs.length === 0) {
+    return {
+      eleves: 0, profs: 0, classes: 0, moyenne: null, tauxPresence: null,
+      anneeActive: null, periodeActive: null, repartitionCycle: [],
+      effectifsParMois: [], topClasses: [], activite: [],
+      sante: { tauxReussite: null, tauxPresence: null, tauxBulletinsPublies: null },
+    };
+  }
 
   const [
     { count: elevesCount },
     { count: profsCount },
     { count: classesCount },
     anneeRes,
-    { data: notesData },
-    { data: presencesData },
     { data: elevesByCycle },
   ] = await Promise.all([
-    supabase.from("eleves").select("*", { count: "exact", head: true }).eq("actif", true),
+    supabase
+      .from("eleves")
+      .select("*", { count: "exact", head: true })
+      .eq("actif", true)
+      .is("archive_le", null)
+      .in("etablissement_id", etabs),
     supabase
       .from("utilisateurs")
       .select("*, role:roles!inner(code)", { count: "exact", head: true })
       .eq("actif", true)
       .eq("role.code", "prof"),
-    supabase.from("classes").select("*", { count: "exact", head: true }).is("archive_le", null),
+    supabase
+      .from("classes")
+      .select("*, niveaux!inner(etablissement_id)", { count: "exact", head: true })
+      .is("archive_le", null)
+      .in("niveaux.etablissement_id", etabs),
     supabase
       .from("annees_scolaires")
       .select("id, libelle")
@@ -62,36 +92,20 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .limit(1)
       .maybeSingle(),
     supabase
-      .from("notes")
-      .select("note, bonus, evaluations!inner(bareme, archive_le)")
-      .is("evaluations.archive_le", null)
-      .limit(10000),
-    supabase.from("presences").select("statut").limit(10000),
-    supabase
       .from("eleves")
       .select("etablissement_id, etablissements(cycle_principal)")
-      .eq("actif", true),
+      .eq("actif", true)
+      .is("archive_le", null)
+      .in("etablissement_id", etabs),
   ]);
 
-  // Moyenne générale (normalisée sur 20)
-  let moyenne: number | null = null;
-  if (notesData && notesData.length > 0) {
-    const sum = notesData.reduce((acc, n) => {
-      const evaluation = Array.isArray(n.evaluations) ? n.evaluations[0] : n.evaluations;
-      const bareme = Number(evaluation?.bareme) || 20;
-      const note = Number(n.note) || 0;
-      const bonus = Number(n.bonus) || 0;
-      return acc + ((note + bonus) / bareme) * 20;
-    }, 0);
-    moyenne = sum / notesData.length;
-  }
-
-  // Taux de présence
-  let tauxPresence: number | null = null;
-  if (presencesData && presencesData.length > 0) {
-    const presents = presencesData.filter((p) => p.statut === "present" || p.statut === "retard").length;
-    tauxPresence = (presents / presencesData.length) * 100;
-  }
+  // Agrégats SQL (toutes les lignes, absents exclus)
+  const moyenne = stats?.moyenne_generale !== null && stats?.moyenne_generale !== undefined
+    ? Number(stats.moyenne_generale)
+    : null;
+  const tauxPresence = stats?.taux_presence !== null && stats?.taux_presence !== undefined
+    ? Number(stats.taux_presence)
+    : null;
 
   // Répartition par cycle
   const cycleMap = new Map<string, number>();

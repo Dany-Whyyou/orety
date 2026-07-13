@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const schema = z.object({
@@ -99,7 +99,7 @@ export async function createRole(raw: unknown): Promise<ActionResult> {
       })
       .select("id")
       .single();
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     if (input.permissions.length > 0) {
       const { error: pErr } = await supabase.from("role_permissions").insert(
@@ -109,7 +109,7 @@ export async function createRole(raw: unknown): Promise<ActionResult> {
           accordee_par: admin.id,
         }))
       );
-      if (pErr) return { ok: false, error: pErr.message };
+      if (pErr) return { ok: false, error: messageErreur(pErr) };
     }
 
     revalidatePath("/admin/parametres/roles");
@@ -150,7 +150,7 @@ export async function updateRole(id: string, raw: unknown): Promise<ActionResult
         couleur: input.couleur || null,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     // Replace permissions
     await supabase.from("role_permissions").delete().eq("role_id", id);
@@ -195,7 +195,7 @@ export async function deleteRole(id: string): Promise<ActionResult> {
     }
 
     const { error } = await supabase.from("roles").delete().eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/parametres/roles");
     return { ok: true };
   } catch (e) {

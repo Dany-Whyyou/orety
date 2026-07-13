@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const FREQUENCES = ["mensuel", "trimestriel", "semestriel"] as const;
@@ -67,7 +67,7 @@ export async function createAnnee(raw: unknown): Promise<ActionResult> {
       })
       .select("id")
       .single();
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/annees");
     revalidatePath("/admin");
     return { ok: true, id: data.id };
@@ -106,7 +106,7 @@ export async function updateAnnee(id: string, raw: unknown): Promise<ActionResul
         active: input.active ?? false,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/annees");
     revalidatePath("/admin");
     return { ok: true };
@@ -131,7 +131,7 @@ export async function setAnneeActive(id: string): Promise<ActionResult> {
       .from("annees_scolaires")
       .update({ active: true })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/annees");
     revalidatePath("/admin");
     return { ok: true };
@@ -153,7 +153,7 @@ export async function deleteAnnee(id: string): Promise<ActionResult> {
       .single();
     if (annee?.active) return { ok: false, error: "Impossible d'archiver l'année active" };
     const { error } = await supabase.from("annees_scolaires").update({ archive_le: new Date().toISOString() }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/annees");
     return { ok: true };
   } catch (e) {
@@ -170,8 +170,10 @@ export async function saveConfigBulletin(
   raw: unknown
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "annees_scolaires", anneeId);
     const input = configSchema.parse(raw);
+    await assertOwned(user, "etablissements", input.etablissement_id);
     if (input.poids.length !== input.nb_periodes) {
       return { ok: false, error: "Le nombre de poids doit correspondre au nombre de périodes" };
     }
@@ -203,10 +205,18 @@ export async function saveConfigBulletin(
     // Check if config exists
     const { data: existing } = await supabase
       .from("config_bulletins")
-      .select("id")
+      .select("id, archive_le")
       .eq("annee_scolaire_id", anneeId)
       .eq("etablissement_id", input.etablissement_id)
       .maybeSingle();
+    // Une config archivée par erreur doit pouvoir être réactivée : sinon les
+    // bulletins annuels de cet établissement/année sont morts définitivement.
+    if (existing?.archive_le) {
+      await supabase
+        .from("config_bulletins")
+        .update({ archive_le: null })
+        .eq("id", existing.id);
+    }
 
     let configId: string;
     let regenererPeriodes = true;
@@ -271,7 +281,7 @@ export async function saveConfigBulletin(
           note_passage: input.note_passage,
         })
         .eq("id", configId);
-      if (error) return { ok: false, error: error.message };
+      if (error) return { ok: false, error: messageErreur(error) };
 
       if (regenererPeriodes && periodeIds.length > 0) {
         await supabase.from("periodes_scolaires").delete().eq("config_bulletin_id", configId);
@@ -291,7 +301,7 @@ export async function saveConfigBulletin(
         })
         .select("id")
         .single();
-      if (error) return { ok: false, error: error.message };
+      if (error) return { ok: false, error: messageErreur(error) };
       configId = data.id;
     }
 
@@ -333,7 +343,7 @@ export async function saveConfigBulletin(
     const { error: insertErr } = await supabase
       .from("periodes_scolaires")
       .insert(periodsToInsert);
-    if (insertErr) return { ok: false, error: insertErr.message };
+    if (insertErr) return { ok: false, error: messageErreur(insertErr) };
 
     revalidatePath("/admin/annees");
     revalidatePath("/admin");
@@ -348,10 +358,11 @@ export async function saveConfigBulletin(
 
 export async function deleteConfigBulletin(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "config_bulletins", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("config_bulletins").update({ archive_le: new Date().toISOString() }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/annees");
     return { ok: true };
   } catch (e) {

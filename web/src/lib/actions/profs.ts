@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, assertCibleGerable, messageErreur } from "@/lib/authz";
 import { getCurrentUser, pseudoToEmail, ROLES_DIRECTION } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 import type { Database } from "@/lib/supabase/database.types";
@@ -170,6 +170,8 @@ export async function updateProf(utilisateur_id: string, raw: unknown): Promise<
   try {
     const user = await requireAdmin();
     await assertOwned(user, "utilisateurs", utilisateur_id);
+    const cibleErr = await assertCibleGerable(user, utilisateur_id, "prof");
+    if (cibleErr) return { ok: false, error: cibleErr };
     const input = profSchema.parse(raw);
     const supabase = createAdminClient();
 
@@ -183,7 +185,7 @@ export async function updateProf(utilisateur_id: string, raw: unknown): Promise<
         telephone: input.telephone || null,
       })
       .eq("id", utilisateur_id);
-    if (uErr) return { ok: false, error: uErr.message };
+    if (uErr) return { ok: false, error: messageErreur(uErr) };
 
     // Update profs
     const { error: pErr } = await supabase
@@ -195,7 +197,7 @@ export async function updateProf(utilisateur_id: string, raw: unknown): Promise<
         specialite: input.specialite || null,
       })
       .eq("utilisateur_id", utilisateur_id);
-    if (pErr) return { ok: false, error: pErr.message };
+    if (pErr) return { ok: false, error: messageErreur(pErr) };
 
     // Replace etablissement links
     await supabase
@@ -232,13 +234,16 @@ export async function toggleProfActif(
   actif: boolean
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "utilisateurs", utilisateur_id);
+    const cibleErr = await assertCibleGerable(user, utilisateur_id, "prof");
+    if (cibleErr) return { ok: false, error: cibleErr };
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("utilisateurs")
       .update({ actif })
       .eq("id", utilisateur_id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/profs");
     return { ok: true };
   } catch (e) {
@@ -246,39 +251,11 @@ export async function toggleProfActif(
   }
 }
 
-/**
- * Sécurité : on ne peut réinitialiser le mot de passe que d'un compte du rôle
- * attendu, et strictement moins privilégié que soi (empêche un secrétariat de
- * s'emparer d'un compte admin en régénérant son mot de passe).
- */
-async function assertCibleReinitialisable(
-  user: Awaited<ReturnType<typeof getCurrentUser>>,
-  utilisateur_id: string,
-  roleAttendu: string
-): Promise<string | null> {
-  const supabase = createAdminClient();
-  const { data: cible } = await supabase
-    .from("utilisateurs")
-    .select("id, roles:role_id(code, niveau_hierarchique)")
-    .eq("id", utilisateur_id)
-    .maybeSingle();
-  if (!cible) return "Compte introuvable";
-  const role = Array.isArray(cible.roles) ? cible.roles[0] : cible.roles;
-  if (role?.code !== roleAttendu) {
-    return `Ce compte n'est pas un compte ${roleAttendu}`;
-  }
-  const monNiveau = user?.role?.niveau_hierarchique ?? 0;
-  if ((role?.niveau_hierarchique ?? 0) >= monNiveau) {
-    return "Vous ne pouvez pas réinitialiser le mot de passe d'un compte de niveau supérieur ou égal au vôtre";
-  }
-  return null;
-}
-
 export async function regenerateProfPassword(utilisateur_id: string): Promise<ActionResult> {
   try {
     const user = await requireAdmin();
     await assertOwned(user, "utilisateurs", utilisateur_id);
-    const gardeErr = await assertCibleReinitialisable(user, utilisateur_id, "prof");
+    const gardeErr = await assertCibleGerable(user, utilisateur_id, "prof");
     if (gardeErr) return { ok: false, error: gardeErr };
     const authClient = createAuthClient();
     const supabase = createAdminClient();
@@ -287,7 +264,7 @@ export async function regenerateProfPassword(utilisateur_id: string): Promise<Ac
     const { error: aErr } = await authClient.auth.admin.updateUserById(utilisateur_id, {
       password,
     });
-    if (aErr) return { ok: false, error: aErr.message };
+    if (aErr) return { ok: false, error: messageErreur(aErr) };
 
     await supabase
       .from("utilisateurs")
@@ -311,6 +288,8 @@ export async function deleteProf(utilisateur_id: string): Promise<ActionResult> 
   try {
     const user = await requireAdmin();
     await assertOwned(user, "utilisateurs", utilisateur_id);
+    const cibleErr = await assertCibleGerable(user, utilisateur_id, "prof");
+    if (cibleErr) return { ok: false, error: cibleErr };
     const supabase = createAdminClient();
 
     // Conformité : archivage définitif, aucune suppression physique.
@@ -319,7 +298,7 @@ export async function deleteProf(utilisateur_id: string): Promise<ActionResult> 
       .from("utilisateurs")
       .update({ archive_le: new Date().toISOString(), actif: false })
       .eq("id", utilisateur_id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     const authClient = createAuthClient();
     const { error: banErr } = await authClient.auth.admin.updateUserById(utilisateur_id, {

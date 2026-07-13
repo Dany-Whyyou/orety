@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { messageErreur } from "@/lib/authz";
 import { requireRole } from "@/lib/auth";
 
 const requireSuperAdmin = () => requireRole(["super_admin"]);
@@ -47,7 +48,7 @@ export async function createOrganisationSuper(raw: unknown): Promise<SuperAction
       couleur_primaire: input.couleur_primaire || null,
       actif: true,
     });
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     revalidatePath("/super");
     return { ok: true };
@@ -65,7 +66,7 @@ export async function toggleOrganisationActive(
     await requireSuperAdmin();
     const supabase = createAdminClient();
     const { error } = await supabase.from("organisations").update({ actif }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/super");
     return { ok: true };
   } catch (e) {
@@ -82,7 +83,7 @@ export async function toggleUtilisateurSystemeActif(
     if (id === moi.id) return { ok: false, error: "Impossible de désactiver votre propre compte" };
     const supabase = createAdminClient();
     const { error } = await supabase.from("utilisateurs").update({ actif }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/super/utilisateurs-systeme");
     return { ok: true };
   } catch (e) {

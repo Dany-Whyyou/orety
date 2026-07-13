@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { messageErreur } from "@/lib/authz";
 import { getCurrentUser, pseudoToEmail } from "@/lib/auth";
 
 const schema = z.object({
@@ -39,7 +40,7 @@ export async function changerMonMotDePasse(raw: unknown): Promise<ProfilActionRe
     const { error } = await admin.auth.admin.updateUserById(user.id, {
       password: input.nouveau_mot_de_passe,
     });
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     return { ok: true };
   } catch (e) {

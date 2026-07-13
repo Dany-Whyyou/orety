@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 import {
   computeBulletinsPourPeriode,
@@ -150,7 +150,7 @@ export async function togglePublieBulletin(id: string, publie: boolean): Promise
       .from("bulletins")
       .update({ publie, publie_le: publie ? new Date().toISOString() : null })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/bulletins");
     return { ok: true };
   } catch (e) {
@@ -181,7 +181,7 @@ export async function publishBulletinsLot(
     const q2 = query.in("inscription_id", ids);
     const q3 = periode_id ? q2.eq("periode_id", periode_id) : q2.eq("est_annuel", true);
     const { error } = await q3;
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/bulletins");
     return { ok: true };
   } catch (e) {
@@ -195,7 +195,7 @@ export async function deleteBulletin(id: string): Promise<ActionResult> {
     await assertOwned(user, "bulletins", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("bulletins").update({ archive_le: new Date().toISOString() }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/bulletins");
     return { ok: true };
   } catch (e) {
@@ -222,7 +222,7 @@ export async function updateBulletinAppreciation(
         decision_conseil: input.decision_conseil || null,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/bulletins");
     return { ok: true };
   } catch (e) {
@@ -248,7 +248,7 @@ export async function updateBulletinMatiere(
         appreciation: input.appreciation || null,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/bulletins");
     return { ok: true };
   } catch (e) {
@@ -280,7 +280,7 @@ export async function enregistrerBulletinPdf(
     const { error: upErr } = await supabase.storage
       .from("bulletins")
       .upload(chemin, contenu, { contentType: "application/pdf", upsert: true });
-    if (upErr) return { ok: false, error: upErr.message };
+    if (upErr) return { ok: false, error: messageErreur(upErr) };
 
     const { data: pub } = supabase.storage.from("bulletins").getPublicUrl(chemin);
 
@@ -288,7 +288,7 @@ export async function enregistrerBulletinPdf(
       .from("bulletins")
       .update({ pdf_url: pub.publicUrl })
       .eq("id", bulletinId);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     revalidatePath("/admin/bulletins");
     return { ok: true, url: pub.publicUrl };

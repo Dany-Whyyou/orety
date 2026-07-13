@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const schema = z.object({
@@ -37,8 +37,9 @@ async function requireAdmin() {
 
 export async function createMatiere(raw: unknown): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
     const input = schema.parse(raw);
+    await assertOwned(user, "etablissements", input.etablissement_id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("matieres").insert({
       etablissement_id: input.etablissement_id,
@@ -47,7 +48,7 @@ export async function createMatiere(raw: unknown): Promise<ActionResult> {
       couleur: input.couleur || null,
       ordre: input.ordre,
     });
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/matieres");
     return { ok: true };
   } catch (e) {
@@ -71,7 +72,7 @@ export async function updateMatiere(id: string, raw: unknown): Promise<ActionRes
         ordre: input.ordre,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/matieres");
     return { ok: true };
   } catch (e) {
@@ -89,7 +90,7 @@ export async function deleteMatiere(id: string): Promise<ActionResult> {
       .from("matieres")
       .update({ archive_le: new Date().toISOString(), actif: false })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/matieres");
     return { ok: true };
   } catch (e) {

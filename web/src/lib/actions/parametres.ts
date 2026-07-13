@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { messageErreur } from "@/lib/authz";
 import { requireRole, ROLES_DIRECTION } from "@/lib/auth";
 
 const hexColor = z
@@ -50,7 +51,7 @@ export async function updateOrganisation(raw: unknown): Promise<ParametresAction
         couleur_accent: input.couleur_accent || null,
       })
       .eq("id", user.organisation_id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     revalidatePath("/admin/parametres");
     return { ok: true };

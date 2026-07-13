@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import type { Database } from "@/lib/supabase/database.types";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 import { getClotureState, getProchaineAnnee, type DecisionFinAnnee } from "@/lib/queries/cloture";
@@ -45,19 +46,22 @@ export async function saveDecision(raw: unknown): Promise<ActionResult> {
   try {
     const user = await requireAdmin();
     const input = decisionSchema.parse(raw);
+    await assertOwned(user, "inscriptions", input.inscription_id);
     const supabase = createAdminClient();
 
     const { error } = await supabase
       .from("inscriptions")
       .update({
+        // Le statut d'inscription reste "inscrit" tant que l'année n'est pas
+        // clôturée : sinon l'élève disparaît des effectifs, des notes et des
+        // bulletins avant même la fin de l'année.
         decision_fin_annee: input.decision,
         motif_decision: input.motif || null,
         decision_le: new Date().toISOString(),
         decision_par: user.id,
-        statut: STATUT_FROM_DECISION[input.decision],
       })
       .eq("id", input.inscription_id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     revalidatePath("/admin/annees");
     return { ok: true, count: 1 };
@@ -72,9 +76,13 @@ export async function bulkSaveDecisions(raw: unknown): Promise<ActionResult> {
   try {
     const user = await requireAdmin();
     const input = bulkSchema.parse(raw);
+    for (const d of input.decisions) {
+      await assertOwned(user, "inscriptions", d.inscription_id);
+    }
     const supabase = createAdminClient();
 
     let count = 0;
+    const echecs: string[] = [];
     for (const d of input.decisions) {
       const { error } = await supabase
         .from("inscriptions")
@@ -83,13 +91,19 @@ export async function bulkSaveDecisions(raw: unknown): Promise<ActionResult> {
           motif_decision: d.motif || null,
           decision_le: new Date().toISOString(),
           decision_par: user.id,
-          statut: STATUT_FROM_DECISION[d.decision],
         })
         .eq("id", d.inscription_id);
-      if (!error) count += 1;
+      if (error) echecs.push(error.message);
+      else count += 1;
     }
 
     revalidatePath("/admin/annees");
+    if (echecs.length > 0) {
+      return {
+        ok: false,
+        error: `${count} décision(s) enregistrée(s), ${echecs.length} en échec : ${echecs[0]}`,
+      };
+    }
     return { ok: true, count };
   } catch (e) {
     if (e instanceof z.ZodError) return { ok: false, error: e.issues[0]?.message ?? "Validation" };
@@ -108,7 +122,9 @@ export async function autoDecisionsClasse(
   seuil: number = 10
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const user = await requireAdmin();
+    await assertOwned(user, "annees_scolaires", annee_id);
+    await assertOwned(user, "classes", classe_id);
     const state = await getClotureState(annee_id);
     if (!state) return { ok: false, error: "Année introuvable" };
     const classe = state.classes.find((c) => c.classe_id === classe_id);
@@ -139,11 +155,18 @@ export async function autoDecisionsClasse(
 export async function cloturerAnnee(annee_id: string): Promise<ActionResult> {
   try {
     const user = await requireAdmin();
+    await assertOwned(user, "annees_scolaires", annee_id);
     const supabase = createAdminClient();
 
     const state = await getClotureState(annee_id);
     if (!state) return { ok: false, error: "Année introuvable" };
     if (state.est_archivee) return { ok: false, error: "Année déjà archivée" };
+    if (state.nb_sans_decision > 0) {
+      return {
+        ok: false,
+        error: `${state.nb_sans_decision} élève(s) n'ont pas de décision de fin d'année. Renseignez-les avant de clôturer.`,
+      };
+    }
 
     // 1) Snapshot par établissement
     const parEtab = new Map<string, {
@@ -227,13 +250,27 @@ export async function cloturerAnnee(annee_id: string): Promise<ActionResult> {
       );
     }
 
-    // 2) Désactiver les élèves sortis (exclu/diplome/transfere/abandonne)
+    // 2) Appliquer les statuts d'inscription (seulement maintenant : avant la
+    //    clôture, l'élève reste "inscrit" pour rester visible partout)
+    for (const [decision, statut] of Object.entries(STATUT_FROM_DECISION)) {
+      const ids = state.classes.flatMap((c) =>
+        c.eleves.filter((e) => e.decision_fin_annee === decision).map((e) => e.inscription_id)
+      );
+      if (ids.length > 0) {
+        await supabase.from("inscriptions").update({ statut }).in("id", ids);
+      }
+    }
+
+    // 3) Désactiver les seuls élèves qui quittent réellement l'école.
+    //    Un diplômé (CM2 → 6e, 3e → 2nde) change de cycle, donc d'établissement :
+    //    aucune cible automatique fiable, mais on ne le désactive PAS (sinon le
+    //    trigger désactive aussi son compte parent et la cohorte sort du système).
+    //    Il reste actif, à réinscrire manuellement dans le nouveau cycle.
     const sortants = state.classes.flatMap((c) =>
       c.eleves
         .filter(
           (e) =>
             e.decision_fin_annee === "exclu" ||
-            e.decision_fin_annee === "diplome" ||
             e.decision_fin_annee === "transfere" ||
             e.decision_fin_annee === "abandonne"
         )
@@ -268,7 +305,7 @@ export async function cloturerAnnee(annee_id: string): Promise<ActionResult> {
               (n as { ordre: number } | null)?.ordre === classe.niveau_ordre + 1
             );
           })
-          .sort()[0];
+          .sort((a, b) => a.id.localeCompare(b.id))[0];
 
         for (const eleve of classe.eleves) {
           if (eleve.decision_fin_annee === "redouble" && targetSameLevel) {

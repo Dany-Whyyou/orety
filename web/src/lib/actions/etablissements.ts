@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertOwned } from "@/lib/authz";
+import { assertOwned, messageErreur } from "@/lib/authz";
 import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 
@@ -70,7 +70,7 @@ export async function createEtablissement(raw: unknown): Promise<ActionResult> {
       slogan: input.slogan || null,
       couleur_primaire: input.couleur_primaire || null,
     });
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
 
     revalidatePath("/admin/etablissements");
     revalidatePath("/admin");
@@ -102,7 +102,7 @@ export async function updateEtablissement(id: string, raw: unknown): Promise<Act
         couleur_primaire: input.couleur_primaire || null,
       })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/etablissements");
     revalidatePath("/admin");
     return { ok: true };
@@ -120,7 +120,7 @@ export async function toggleEtablissementActif(id: string, actif: boolean): Prom
     await assertOwned(user, "etablissements", id);
     const supabase = createAdminClient();
     const { error } = await supabase.from("etablissements").update({ actif }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/etablissements");
     return { ok: true };
   } catch (e) {
@@ -137,7 +137,7 @@ export async function deleteEtablissement(id: string): Promise<ActionResult> {
       .from("etablissements")
       .update({ archive_le: new Date().toISOString(), actif: false })
       .eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: messageErreur(error) };
     revalidatePath("/admin/etablissements");
     revalidatePath("/admin");
     return { ok: true };

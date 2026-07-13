@@ -28,6 +28,7 @@ export async function getAnnonces(): Promise<AnnonceItem[]> {
        classes(nom),
        utilisateurs:auteur_id(pseudo, nom, prenom)`
     )
+    .is("archive_le", null)
     .order("cree_le", { ascending: false });
 
   if (error) return [];

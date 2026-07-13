@@ -76,7 +76,7 @@ export function EtablissementsList({ etablissements }: Props) {
     if (!deleteTarget) return;
     const res = await deleteEtablissement(deleteTarget.id);
     if (res.ok) {
-      toast.success("Établissement supprimé");
+      toast.success("Établissement archivé");
       setDeleteTarget(null);
     } else {
       toast.error(res.error);
@@ -171,7 +171,7 @@ export function EtablissementsList({ etablissements }: Props) {
                         onClick={() => setDeleteTarget(e)}
                         className="text-danger focus:text-danger"
                       >
-                        <Trash2 /> Supprimer
+                        <Trash2 /> Archiver
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -241,7 +241,7 @@ export function EtablissementsList({ etablissements }: Props) {
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer l&apos;établissement ?</DialogTitle>
+            <DialogTitle>Archiver l&apos;établissement ?</DialogTitle>
             <DialogDescription>
               Cette action est <strong>irréversible</strong>. Les élèves, classes, évaluations et
               bulletins rattachés à <strong>{deleteTarget?.nom}</strong> seront affectés.
@@ -251,14 +251,14 @@ export function EtablissementsList({ etablissements }: Props) {
                   {deleteTarget.effectif > 1 ? "s" : ""} à ce site.
                 </span>
               )}
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDelete}>
-              <Trash2 /> Supprimer définitivement
+              <Trash2 /> Archiver définitivement
             </Button>
           </DialogFooter>
         </DialogContent>

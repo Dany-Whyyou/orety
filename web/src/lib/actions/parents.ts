@@ -250,9 +250,17 @@ export async function deleteParent(utilisateur_id: string): Promise<ActionResult
       };
     }
 
-    const authClient = createAuthClient();
-    const { error } = await authClient.auth.admin.deleteUser(utilisateur_id);
+    // Conformité : archivage définitif, compte Auth banni mais conservé
+    const { error } = await supabase
+      .from("utilisateurs")
+      .update({ archive_le: new Date().toISOString(), actif: false })
+      .eq("id", utilisateur_id);
     if (error) return { ok: false, error: error.message };
+
+    const authClient = createAuthClient();
+    await authClient.auth.admin.updateUserById(utilisateur_id, {
+      ban_duration: "876000h",
+    });
     revalidatePath("/admin/parents");
     return { ok: true };
   } catch (e) {

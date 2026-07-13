@@ -62,7 +62,7 @@ export function NiveauxList({ groups, etablissements }: Props) {
     if (!deleteTarget) return;
     const res = await deleteNiveau(deleteTarget.id);
     if (res.ok) {
-      toast.success("Niveau supprimé");
+      toast.success("Niveau archivé");
       setDeleteTarget(null);
     } else toast.error(res.error);
   }
@@ -162,7 +162,7 @@ export function NiveauxList({ groups, etablissements }: Props) {
                             onClick={() => setDeleteTarget(n)}
                             className="text-danger focus:text-danger"
                           >
-                            <Trash2 /> Supprimer
+                            <Trash2 /> Archiver
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -198,18 +198,18 @@ export function NiveauxList({ groups, etablissements }: Props) {
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer le niveau ?</DialogTitle>
+            <DialogTitle>Archiver le niveau ?</DialogTitle>
             <DialogDescription>
               Le niveau <strong>{deleteTarget?.libelle}</strong> sera supprimé. Les classes et
               coefficients associés seront affectés.
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDelete}>
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </Button>
           </DialogFooter>
         </DialogContent>

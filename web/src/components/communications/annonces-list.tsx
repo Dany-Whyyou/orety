@@ -61,7 +61,7 @@ export function AnnoncesList({ annonces, etablissements, classes }: Props) {
     if (!deleteTarget) return;
     const res = await deleteAnnonce(deleteTarget.id);
     if (res.ok) {
-      toast.success("Annonce supprimée");
+      toast.success("Annonce archivée");
       setDeleteTarget(null);
     } else toast.error(res.error);
   }
@@ -171,7 +171,7 @@ export function AnnoncesList({ annonces, etablissements, classes }: Props) {
                           onClick={() => setDeleteTarget(a)}
                           className="text-danger focus:text-danger"
                         >
-                          <Trash2 /> Supprimer
+                          <Trash2 /> Archiver
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -219,17 +219,17 @@ export function AnnoncesList({ annonces, etablissements, classes }: Props) {
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer l&apos;annonce ?</DialogTitle>
+            <DialogTitle>Archiver l&apos;annonce ?</DialogTitle>
             <DialogDescription>
               <strong>{deleteTarget?.titre}</strong> sera supprimée. Cette action est irréversible.
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDelete}>
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -32,6 +32,7 @@ export async function getParents(): Promise<ParentListItem[]> {
     .select(
       "id, pseudo, nom, prenom, email, telephone, actif, mot_de_passe_initial_utilise, pin_hash, dernier_login"
     )
+    .is("archive_le", null)
     .eq("role_id", roleData.id)
     .order("pseudo");
 

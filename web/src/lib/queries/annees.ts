@@ -39,6 +39,7 @@ export async function getAnnees(): Promise<AnneeListItem[]> {
   const { data: annees, error } = await supabase
     .from("annees_scolaires")
     .select("*")
+    .is("archive_le", null)
     .order("date_debut", { ascending: false });
 
   if (error) {
@@ -54,6 +55,7 @@ export async function getAnnees(): Promise<AnneeListItem[]> {
     .select(
       "id, annee_scolaire_id, etablissement_id, frequence, nb_periodes, formule_annuelle_dsl, formule_annuelle_json, note_maximale, note_passage, etablissements(nom), periodes_scolaires(id, numero, libelle, date_debut, date_fin, cloturee)"
     )
+    .is("archive_le", null)
     .in("annee_scolaire_id", anneeIds);
 
   const configsByAnnee = new Map<string, ConfigBulletinItem[]>();

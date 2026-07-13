@@ -162,7 +162,10 @@ export async function deleteAnnonce(id: string): Promise<ActionResult> {
   try {
     await requireAuth();
     const supabase = createAdminClient();
-    const { error } = await supabase.from("annonces").delete().eq("id", id);
+    const { error } = await supabase
+      .from("annonces")
+      .update({ archive_le: new Date().toISOString(), publiee: false })
+      .eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/communications");
     return { ok: true };

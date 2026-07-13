@@ -129,7 +129,10 @@ export async function deleteEtablissement(id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
     const supabase = createAdminClient();
-    const { error } = await supabase.from("etablissements").delete().eq("id", id);
+    const { error } = await supabase
+      .from("etablissements")
+      .update({ archive_le: new Date().toISOString(), actif: false })
+      .eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/etablissements");
     revalidatePath("/admin");

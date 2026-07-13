@@ -80,7 +80,7 @@ export async function deleteClasse(id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
     const supabase = createAdminClient();
-    const { error } = await supabase.from("classes").delete().eq("id", id);
+    const { error } = await supabase.from("classes").update({ archive_le: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/classes");
     return { ok: true };

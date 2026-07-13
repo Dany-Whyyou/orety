@@ -60,7 +60,7 @@ export async function deleteNiveau(id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
     const supabase = createAdminClient();
-    const { error } = await supabase.from("niveaux").delete().eq("id", id);
+    const { error } = await supabase.from("niveaux").update({ archive_le: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/niveaux");
     return { ok: true };

@@ -101,7 +101,7 @@ export function IncidentsList({ incidents, eleves }: Props) {
     if (!deleteTarget) return;
     const res = await deleteIncident(deleteTarget.id);
     if (res.ok) {
-      toast.success("Incident supprimé");
+      toast.success("Signalement archivé");
       setDeleteTarget(null);
     } else toast.error(res.error);
   }
@@ -293,18 +293,18 @@ export function IncidentsList({ incidents, eleves }: Props) {
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer le signalement ?</DialogTitle>
+            <DialogTitle>Archiver le signalement ?</DialogTitle>
             <DialogDescription>
               <strong>{deleteTarget?.titre}</strong> et ses photos seront supprimés
               définitivement. Le parent ne sera pas re-notifié.
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDelete}>
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -392,7 +392,7 @@ function IncidentCard({
             ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-danger focus:text-danger">
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

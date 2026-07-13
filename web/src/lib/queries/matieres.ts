@@ -36,8 +36,12 @@ export async function getMatieres(): Promise<MatiereGroup[]> {
 
   const [{ data: matieresData }, { data: niveauxData }, { data: coefsData }] =
     await Promise.all([
-      scope ? matieresBase.eq("etablissement_id", scope) : matieresBase,
-      scope ? niveauxBase.eq("etablissement_id", scope) : niveauxBase,
+      scope
+        ? matieresBase.is("archive_le", null).eq("etablissement_id", scope)
+        : matieresBase.is("archive_le", null),
+      scope
+        ? niveauxBase.is("archive_le", null).eq("etablissement_id", scope)
+        : niveauxBase.is("archive_le", null),
       supabase.from("coefficients_matiere").select("matiere_id, niveau_id, coefficient"),
     ]);
 

@@ -53,7 +53,7 @@ export function MatieresList({ groups, etablissements }: Props) {
     if (!deleteTarget) return;
     const res = await deleteMatiere(deleteTarget.id);
     if (res.ok) {
-      toast.success("Matière supprimée");
+      toast.success("Matière archivée");
       setDeleteTarget(null);
     } else toast.error(res.error);
   }
@@ -185,7 +185,7 @@ export function MatieresList({ groups, etablissements }: Props) {
                               onClick={() => setDeleteTarget(m)}
                               className="text-danger focus:text-danger"
                             >
-                              <Trash2 /> Supprimer
+                              <Trash2 /> Archiver
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -239,18 +239,18 @@ export function MatieresList({ groups, etablissements }: Props) {
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer la matière ?</DialogTitle>
+            <DialogTitle>Archiver la matière ?</DialogTitle>
             <DialogDescription>
               La matière <strong>{deleteTarget?.nom}</strong> et ses coefficients seront supprimés.
               Les évaluations associées seront affectées.
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDelete}>
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </Button>
           </DialogFooter>
         </DialogContent>

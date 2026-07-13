@@ -182,25 +182,11 @@ export async function deleteIncident(id: string): Promise<ActionResult> {
     }
     const supabase = createAdminClient();
 
-    // Also delete photos from storage
-    const { data: inc } = await supabase
+    // Conformité : archivage (photos conservées dans le Storage), pas de suppression
+    const { error } = await supabase
       .from("incidents")
-      .select("photos")
-      .eq("id", id)
-      .single();
-    if (inc && Array.isArray(inc.photos) && inc.photos.length > 0) {
-      const paths = (inc.photos as string[])
-        .map((url) => {
-          const idx = url.indexOf("/incidents/");
-          return idx >= 0 ? url.substring(idx + "/incidents/".length) : null;
-        })
-        .filter((p): p is string => !!p);
-      if (paths.length > 0) {
-        await supabase.storage.from("incidents").remove(paths);
-      }
-    }
-
-    const { error } = await supabase.from("incidents").delete().eq("id", id);
+      .update({ archive_le: new Date().toISOString() })
+      .eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/incidents");
     return { ok: true };

@@ -28,7 +28,8 @@ export async function getEtablissements(): Promise<EtablissementListItem[]> {
     .from("etablissements")
     .select("*")
     .order("nom");
-  const { data, error } = await (scope ? base.eq("id", scope) : base);
+  const filtre = base.is("archive_le", null);
+  const { data, error } = await (scope ? filtre.eq("id", scope) : filtre);
 
   if (error) {
     console.error("getEtablissements:", error);

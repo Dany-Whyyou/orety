@@ -65,7 +65,7 @@ export function ParentsList({ parents }: Props) {
     if (!deleteTarget) return;
     const res = await deleteParent(deleteTarget.utilisateur_id);
     if (res.ok) {
-      toast.success("Parent supprimé");
+      toast.success("Compte parent archivé");
       setDeleteTarget(null);
     } else toast.error(res.error);
   }
@@ -171,7 +171,7 @@ export function ParentsList({ parents }: Props) {
                         onClick={() => setDeleteTarget(p)}
                         className="text-danger focus:text-danger"
                       >
-                        <Trash2 /> Supprimer
+                        <Trash2 /> Archiver
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -263,18 +263,18 @@ export function ParentsList({ parents }: Props) {
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer le compte parent ?</DialogTitle>
+            <DialogTitle>Archiver le compte parent ?</DialogTitle>
             <DialogDescription>
               Le compte <code className="font-mono">{deleteTarget?.pseudo}</code> sera supprimé.
               Action impossible si des enfants sont encore liés à cette clé parentale.
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDelete}>
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </Button>
           </DialogFooter>
         </DialogContent>

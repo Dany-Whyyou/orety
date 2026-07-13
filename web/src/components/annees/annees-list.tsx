@@ -71,7 +71,7 @@ export function AnneesList({ annees, etablissements }: Props) {
     if (!deleteTarget) return;
     const res = await deleteAnnee(deleteTarget.id);
     if (res.ok) {
-      toast.success("Année supprimée");
+      toast.success("Année archivée");
       setDeleteTarget(null);
     } else toast.error(res.error);
   }
@@ -80,7 +80,7 @@ export function AnneesList({ annees, etablissements }: Props) {
     if (!deleteConfigTarget) return;
     const res = await deleteConfigBulletin(deleteConfigTarget);
     if (res.ok) {
-      toast.success("Configuration supprimée");
+      toast.success("Configuration archivée");
       setDeleteConfigTarget(null);
     } else toast.error(res.error);
   }
@@ -188,7 +188,7 @@ export function AnneesList({ annees, etablissements }: Props) {
                           onClick={() => setDeleteTarget(a)}
                           className="text-danger focus:text-danger"
                         >
-                          <Trash2 /> Supprimer
+                          <Trash2 /> Archiver
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -307,19 +307,19 @@ export function AnneesList({ annees, etablissements }: Props) {
       <Dialog open={!!deleteConfigTarget} onOpenChange={(o) => !o && setDeleteConfigTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer la configuration de bulletins ?</DialogTitle>
+            <DialogTitle>Archiver la configuration de bulletins ?</DialogTitle>
             <DialogDescription>
               ⚠️ Cette suppression entraîne celle des <strong>périodes scolaires</strong> associées,
               et en cascade de <strong>toutes les évaluations, notes et bulletins</strong> de ces
               périodes. Cette action est <strong>irréversible</strong>.
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteConfigTarget(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDeleteConfig}>
-              <Trash2 /> Supprimer définitivement
+              <Trash2 /> Archiver définitivement
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -328,18 +328,18 @@ export function AnneesList({ annees, etablissements }: Props) {
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer l&apos;année scolaire ?</DialogTitle>
+            <DialogTitle>Archiver l&apos;année scolaire ?</DialogTitle>
             <DialogDescription>
               L&apos;année <strong>{deleteTarget?.libelle}</strong>, ses configurations de bulletin,
               ses périodes et ses inscriptions seront supprimées. <strong>Irréversible.</strong>
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDelete}>
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </Button>
           </DialogFooter>
         </DialogContent>

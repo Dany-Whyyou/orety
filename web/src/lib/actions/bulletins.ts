@@ -181,7 +181,7 @@ export async function deleteBulletin(id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
     const supabase = createAdminClient();
-    const { error } = await supabase.from("bulletins").delete().eq("id", id);
+    const { error } = await supabase.from("bulletins").update({ archive_le: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/bulletins");
     return { ok: true };

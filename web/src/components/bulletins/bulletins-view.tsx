@@ -94,7 +94,7 @@ export function BulletinsView({ bulletins, classes, periodes, annees }: Props) {
     if (!deleteTarget) return;
     const res = await deleteBulletin(deleteTarget.id);
     if (res.ok) {
-      toast.success("Bulletin supprimé");
+      toast.success("Bulletin archivé");
       setDeleteTarget(null);
     } else toast.error(res.error);
   }
@@ -302,18 +302,18 @@ export function BulletinsView({ bulletins, classes, periodes, annees }: Props) {
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer le bulletin ?</DialogTitle>
+            <DialogTitle>Archiver le bulletin ?</DialogTitle>
             <DialogDescription>
               Le bulletin de <strong>{deleteTarget?.eleve_prenom} {deleteTarget?.eleve_nom}</strong>{" "}
               sera supprimé. Vous pourrez le régénérer.
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDelete}>
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -423,7 +423,7 @@ function BulletinRow({
               }}
               className="text-danger focus:text-danger"
             >
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

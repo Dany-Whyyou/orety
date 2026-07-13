@@ -41,6 +41,7 @@ export async function getProfs(): Promise<ProfListItem[]> {
        utilisateur_etablissements(etablissements(id, nom)),
        prof_matieres(matieres(id, nom, code, couleur))`
     )
+    .is("archive_le", null)
     .eq("role_id", roleData.id)
     .order("nom");
 

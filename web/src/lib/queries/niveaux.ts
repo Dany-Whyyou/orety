@@ -28,7 +28,8 @@ export async function getNiveaux(): Promise<NiveauGroup[]> {
     .from("niveaux")
     .select("id, code, libelle, cycle, ordre, etablissement_id, etablissements(nom)")
     .order("ordre");
-  const { data, error } = await (scope ? base.eq("etablissement_id", scope) : base);
+  const filtre = base.is("archive_le", null);
+  const { data, error } = await (scope ? filtre.eq("etablissement_id", scope) : filtre);
 
   if (error) {
     console.error("getNiveaux:", error);

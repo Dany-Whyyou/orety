@@ -55,6 +55,7 @@ export async function getTypesEvaluation(): Promise<TypeEvaluationItem[]> {
   const { data, error } = await supabase
     .from("types_evaluation")
     .select("id, etablissement_id, code, libelle, poids_defaut, couleur, ordre, actif, etablissements(nom)")
+    .is("archive_le", null)
     .order("ordre");
   if (error) return [];
 
@@ -62,6 +63,7 @@ export async function getTypesEvaluation(): Promise<TypeEvaluationItem[]> {
   const { data: usage } = await supabase
     .from("evaluations")
     .select("type_evaluation_id")
+    .is("archive_le", null)
     .in("type_evaluation_id", ids.length ? ids : ["_none_"]);
   const usageCount = new Map<string, number>();
   (usage ?? []).forEach((u) => {
@@ -113,6 +115,7 @@ export async function getEvaluations(): Promise<EvaluationItem[]> {
          annees_scolaires(libelle, active)
        )`
     )
+    .is("archive_le", null)
     .order("date_evaluation", { ascending: false });
 
   if (error) {

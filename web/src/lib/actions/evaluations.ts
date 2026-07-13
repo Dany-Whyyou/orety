@@ -104,7 +104,7 @@ export async function deleteTypeEvaluation(id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
     const supabase = createAdminClient();
-    const { error } = await supabase.from("types_evaluation").delete().eq("id", id);
+    const { error } = await supabase.from("types_evaluation").update({ archive_le: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/evaluations");
     return { ok: true };
@@ -230,7 +230,7 @@ export async function deleteEvaluation(id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
     const supabase = createAdminClient();
-    const { error } = await supabase.from("evaluations").delete().eq("id", id);
+    const { error } = await supabase.from("evaluations").update({ archive_le: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/evaluations");
     return { ok: true };
@@ -295,16 +295,10 @@ export async function saveNote(raw: unknown): Promise<ActionResult> {
   }
 }
 
-export async function deleteNote(id: string): Promise<ActionResult> {
-  try {
-    await requireAdmin();
-    const supabase = createAdminClient();
-    const { error } = await supabase.from("notes").delete().eq("id", id);
-    if (error) return { ok: false, error: error.message };
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Erreur" };
-  }
+export async function deleteNote(): Promise<ActionResult> {
+  // Conformité : les notes sont un registre officiel, jamais supprimées.
+  // Pour corriger une note, la ressaisir via saveNote.
+  return { ok: false, error: "Les notes ne peuvent pas être supprimées (registre officiel)" };
 }
 
 export async function getNotesForEvaluationRPC(evaluationId: string) {

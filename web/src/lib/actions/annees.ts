@@ -141,7 +141,14 @@ export async function deleteAnnee(id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
     const supabase = createAdminClient();
-    const { error } = await supabase.from("annees_scolaires").delete().eq("id", id);
+    // Conformité : jamais de suppression physique d'une année scolaire
+    const { data: annee } = await supabase
+      .from("annees_scolaires")
+      .select("active")
+      .eq("id", id)
+      .single();
+    if (annee?.active) return { ok: false, error: "Impossible d'archiver l'année active" };
+    const { error } = await supabase.from("annees_scolaires").update({ archive_le: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/annees");
     return { ok: true };
@@ -281,7 +288,7 @@ export async function deleteConfigBulletin(id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
     const supabase = createAdminClient();
-    const { error } = await supabase.from("config_bulletins").delete().eq("id", id);
+    const { error } = await supabase.from("config_bulletins").update({ archive_le: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/annees");
     return { ok: true };

@@ -133,7 +133,7 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents }
     if (!deleteTarget) return;
     const res = await deleteEleve(deleteTarget.id);
     if (res.ok) {
-      toast.success("Élève supprimé");
+      toast.success("Élève archivé");
       setDeleteTarget(null);
     } else toast.error(res.error);
   }
@@ -381,7 +381,7 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents }
                               onClick={() => setDeleteTarget(e)}
                               className="text-danger focus:text-danger"
                             >
-                              <Trash2 /> Supprimer
+                              <Trash2 /> Archiver
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -458,20 +458,20 @@ export function ElevesTable({ eleves, etablissements, classes, annees, parents }
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer l&apos;élève ?</DialogTitle>
+            <DialogTitle>Archiver l&apos;élève ?</DialogTitle>
             <DialogDescription>
               <strong>{deleteTarget?.prenom} {deleteTarget?.nom}</strong> sera supprimé, ainsi que
               ses inscriptions et notes. Le compte parent rattaché (
               <code className="font-mono">{deleteTarget?.cle_parentale}</code>) n&apos;est
               <strong> pas</strong> supprimé.
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDelete}>
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </Button>
           </DialogFooter>
         </DialogContent>

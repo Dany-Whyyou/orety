@@ -277,9 +277,20 @@ export async function regenerateProfPassword(utilisateur_id: string): Promise<Ac
 export async function deleteProf(utilisateur_id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
-    const authClient = createAuthClient();
-    const { error } = await authClient.auth.admin.deleteUser(utilisateur_id);
+    const supabase = createAdminClient();
+
+    // Conformité : archivage définitif, aucune suppression physique.
+    // Le compte Auth est banni (connexion impossible) mais conservé.
+    const { error } = await supabase
+      .from("utilisateurs")
+      .update({ archive_le: new Date().toISOString(), actif: false })
+      .eq("id", utilisateur_id);
     if (error) return { ok: false, error: error.message };
+
+    const authClient = createAuthClient();
+    await authClient.auth.admin.updateUserById(utilisateur_id, {
+      ban_duration: "876000h", // ~100 ans
+    });
     revalidatePath("/admin/profs");
     return { ok: true };
   } catch (e) {

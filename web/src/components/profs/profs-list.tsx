@@ -71,7 +71,7 @@ export function ProfsList({ profs, etablissements, matieres }: Props) {
     if (!deleteTarget) return;
     const res = await deleteProf(deleteTarget.utilisateur_id);
     if (res.ok) {
-      toast.success("Prof supprimé");
+      toast.success("Professeur archivé");
       setDeleteTarget(null);
     } else toast.error(res.error);
   }
@@ -177,7 +177,7 @@ export function ProfsList({ profs, etablissements, matieres }: Props) {
                         onClick={() => setDeleteTarget(p)}
                         className="text-danger focus:text-danger"
                       >
-                        <Trash2 /> Supprimer
+                        <Trash2 /> Archiver
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -285,19 +285,19 @@ export function ProfsList({ profs, etablissements, matieres }: Props) {
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer le professeur ?</DialogTitle>
+            <DialogTitle>Archiver le professeur ?</DialogTitle>
             <DialogDescription>
               Le compte de <strong>{deleteTarget?.prenom} {deleteTarget?.nom}</strong> (
               <span className="font-mono">{deleteTarget?.pseudo}</span>) sera supprimé
               définitivement, ainsi que ses affectations.
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDelete}>
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </Button>
           </DialogFooter>
         </DialogContent>

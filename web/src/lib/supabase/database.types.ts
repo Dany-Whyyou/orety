@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activites: {
@@ -153,6 +178,7 @@ export type Database = {
       annees_scolaires: {
         Row: {
           active: boolean
+          archive_le: string | null
           archivee: boolean
           cree_le: string
           date_debut: string
@@ -164,6 +190,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          archive_le?: string | null
           archivee?: boolean
           cree_le?: string
           date_debut: string
@@ -175,6 +202,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          archive_le?: string | null
           archivee?: boolean
           cree_le?: string
           date_debut?: string
@@ -196,6 +224,7 @@ export type Database = {
       }
       annonces: {
         Row: {
+          archive_le: string | null
           auteur_id: string | null
           cible: Database["public"]["Enums"]["cible_annonce"]
           classe_id: string | null
@@ -212,6 +241,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archive_le?: string | null
           auteur_id?: string | null
           cible?: Database["public"]["Enums"]["cible_annonce"]
           classe_id?: string | null
@@ -228,6 +258,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archive_le?: string | null
           auteur_id?: string | null
           cible?: Database["public"]["Enums"]["cible_annonce"]
           classe_id?: string | null
@@ -433,6 +464,7 @@ export type Database = {
       bulletins: {
         Row: {
           appreciation_generale: string | null
+          archive_le: string | null
           cree_le: string
           decision_conseil: string | null
           effectif_classe: number | null
@@ -450,6 +482,7 @@ export type Database = {
         }
         Insert: {
           appreciation_generale?: string | null
+          archive_le?: string | null
           cree_le?: string
           decision_conseil?: string | null
           effectif_classe?: number | null
@@ -467,6 +500,7 @@ export type Database = {
         }
         Update: {
           appreciation_generale?: string | null
+          archive_le?: string | null
           cree_le?: string
           decision_conseil?: string | null
           effectif_classe?: number | null
@@ -502,6 +536,7 @@ export type Database = {
       classes: {
         Row: {
           annee_scolaire_id: string
+          archive_le: string | null
           capacite_max: number | null
           code: string | null
           cree_le: string
@@ -514,6 +549,7 @@ export type Database = {
         }
         Insert: {
           annee_scolaire_id: string
+          archive_le?: string | null
           capacite_max?: number | null
           code?: string | null
           cree_le?: string
@@ -526,6 +562,7 @@ export type Database = {
         }
         Update: {
           annee_scolaire_id?: string
+          archive_le?: string | null
           capacite_max?: number | null
           code?: string | null
           cree_le?: string
@@ -607,6 +644,7 @@ export type Database = {
           affiche_appreciation: boolean
           affiche_rang: boolean
           annee_scolaire_id: string
+          archive_le: string | null
           cree_le: string
           etablissement_id: string
           formule_annuelle_dsl: string
@@ -622,6 +660,7 @@ export type Database = {
           affiche_appreciation?: boolean
           affiche_rang?: boolean
           annee_scolaire_id: string
+          archive_le?: string | null
           cree_le?: string
           etablissement_id: string
           formule_annuelle_dsl: string
@@ -637,6 +676,7 @@ export type Database = {
           affiche_appreciation?: boolean
           affiche_rang?: boolean
           annee_scolaire_id?: string
+          archive_le?: string | null
           cree_le?: string
           etablissement_id?: string
           formule_annuelle_dsl?: string
@@ -669,6 +709,7 @@ export type Database = {
         Row: {
           actif: boolean
           adresse: string | null
+          archive_le: string | null
           cle_parentale: string
           cree_le: string
           date_naissance: string | null
@@ -690,6 +731,7 @@ export type Database = {
         Insert: {
           actif?: boolean
           adresse?: string | null
+          archive_le?: string | null
           cle_parentale: string
           cree_le?: string
           date_naissance?: string | null
@@ -711,6 +753,7 @@ export type Database = {
         Update: {
           actif?: boolean
           adresse?: string | null
+          archive_le?: string | null
           cle_parentale?: string
           cree_le?: string
           date_naissance?: string | null
@@ -750,6 +793,7 @@ export type Database = {
         Row: {
           actif: boolean
           adresse: string | null
+          archive_le: string | null
           couleur_primaire: string | null
           couleur_secondaire: string | null
           cree_le: string
@@ -769,6 +813,7 @@ export type Database = {
         Insert: {
           actif?: boolean
           adresse?: string | null
+          archive_le?: string | null
           couleur_primaire?: string | null
           couleur_secondaire?: string | null
           cree_le?: string
@@ -788,6 +833,7 @@ export type Database = {
         Update: {
           actif?: boolean
           adresse?: string | null
+          archive_le?: string | null
           couleur_primaire?: string | null
           couleur_secondaire?: string | null
           cree_le?: string
@@ -817,6 +863,7 @@ export type Database = {
       evaluations: {
         Row: {
           affectation_id: string
+          archive_le: string | null
           autorise_bonus: boolean
           bareme: number
           bonus_max: number | null
@@ -835,6 +882,7 @@ export type Database = {
         }
         Insert: {
           affectation_id: string
+          archive_le?: string | null
           autorise_bonus?: boolean
           bareme: number
           bonus_max?: number | null
@@ -853,6 +901,7 @@ export type Database = {
         }
         Update: {
           affectation_id?: string
+          archive_le?: string | null
           autorise_bonus?: boolean
           bareme?: number
           bonus_max?: number | null
@@ -903,6 +952,7 @@ export type Database = {
       incidents: {
         Row: {
           action_prise: string | null
+          archive_le: string | null
           auteur_id: string | null
           cree_le: string
           date_incident: string
@@ -923,6 +973,7 @@ export type Database = {
         }
         Insert: {
           action_prise?: string | null
+          archive_le?: string | null
           auteur_id?: string | null
           cree_le?: string
           date_incident?: string
@@ -943,6 +994,7 @@ export type Database = {
         }
         Update: {
           action_prise?: string | null
+          archive_le?: string | null
           auteur_id?: string | null
           cree_le?: string
           date_incident?: string
@@ -1081,6 +1133,7 @@ export type Database = {
       matieres: {
         Row: {
           actif: boolean
+          archive_le: string | null
           code: string
           couleur: string | null
           cree_le: string
@@ -1092,6 +1145,7 @@ export type Database = {
         }
         Insert: {
           actif?: boolean
+          archive_le?: string | null
           code: string
           couleur?: string | null
           cree_le?: string
@@ -1103,6 +1157,7 @@ export type Database = {
         }
         Update: {
           actif?: boolean
+          archive_le?: string | null
           code?: string
           couleur?: string | null
           cree_le?: string
@@ -1192,6 +1247,7 @@ export type Database = {
       }
       niveaux: {
         Row: {
+          archive_le: string | null
           code: string
           cree_le: string
           cycle: Database["public"]["Enums"]["cycle_scolaire"]
@@ -1202,6 +1258,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archive_le?: string | null
           code: string
           cree_le?: string
           cycle: Database["public"]["Enums"]["cycle_scolaire"]
@@ -1212,6 +1269,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archive_le?: string | null
           code?: string
           cree_le?: string
           cycle?: Database["public"]["Enums"]["cycle_scolaire"]
@@ -1821,6 +1879,7 @@ export type Database = {
       types_evaluation: {
         Row: {
           actif: boolean
+          archive_le: string | null
           code: string
           couleur: string | null
           cree_le: string
@@ -1833,6 +1892,7 @@ export type Database = {
         }
         Insert: {
           actif?: boolean
+          archive_le?: string | null
           code: string
           couleur?: string | null
           cree_le?: string
@@ -1845,6 +1905,7 @@ export type Database = {
         }
         Update: {
           actif?: boolean
+          archive_le?: string | null
           code?: string
           couleur?: string | null
           cree_le?: string
@@ -1901,6 +1962,7 @@ export type Database = {
       utilisateurs: {
         Row: {
           actif: boolean
+          archive_le: string | null
           cree_le: string
           dernier_login: string | null
           email: string | null
@@ -1920,6 +1982,7 @@ export type Database = {
         }
         Insert: {
           actif?: boolean
+          archive_le?: string | null
           cree_le?: string
           dernier_login?: string | null
           email?: string | null
@@ -1939,6 +2002,7 @@ export type Database = {
         }
         Update: {
           actif?: boolean
+          archive_le?: string | null
           cree_le?: string
           dernier_login?: string | null
           email?: string | null
@@ -2164,6 +2228,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       cible_annonce: [

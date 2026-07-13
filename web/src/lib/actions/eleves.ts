@@ -241,7 +241,10 @@ export async function deleteEleve(id: string): Promise<EleveActionResult> {
   try {
     await requireAdmin();
     const supabase = createAdminClient();
-    const { error } = await supabase.from("eleves").delete().eq("id", id);
+    const { error } = await supabase
+      .from("eleves")
+      .update({ archive_le: new Date().toISOString(), actif: false })
+      .eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/eleves");
     return { ok: true };

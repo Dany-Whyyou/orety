@@ -45,6 +45,7 @@ export async function getBulletins(): Promise<BulletinListItem[]> {
          annees_scolaires(libelle, active)
        )`
     )
+    .is("archive_le", null)
     .order("cree_le", { ascending: false });
 
   if (error) {

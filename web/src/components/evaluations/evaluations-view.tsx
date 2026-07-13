@@ -112,7 +112,7 @@ export function EvaluationsView({
     if (!deleteEval) return;
     const res = await deleteEvaluation(deleteEval.id);
     if (res.ok) {
-      toast.success("Évaluation supprimée");
+      toast.success("Évaluation archivée");
       setDeleteEval(null);
     } else toast.error(res.error);
   }
@@ -127,7 +127,7 @@ export function EvaluationsView({
     if (!deleteType) return;
     const res = await deleteTypeEvaluation(deleteType.id);
     if (res.ok) {
-      toast.success("Type supprimé");
+      toast.success("Type archivé");
       setDeleteType(null);
     } else toast.error(res.error);
   }
@@ -299,17 +299,17 @@ export function EvaluationsView({
           <Dialog open={!!deleteEval} onOpenChange={(o) => !o && setDeleteEval(null)}>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Supprimer l&apos;évaluation ?</DialogTitle>
+                <DialogTitle>Archiver l&apos;évaluation ?</DialogTitle>
                 <DialogDescription>
                   <strong>{deleteEval?.titre}</strong> et toutes ses notes seront supprimées.
-                </DialogDescription>
+                 Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
               </DialogHeader>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setDeleteEval(null)}>
                   Annuler
                 </Button>
                 <Button variant="destructive" onClick={onDeleteEvaluation}>
-                  <Trash2 /> Supprimer
+                  <Trash2 /> Archiver
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -345,7 +345,7 @@ export function EvaluationsView({
       <Dialog open={!!deleteType} onOpenChange={(o) => !o && setDeleteType(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer le type ?</DialogTitle>
+            <DialogTitle>Archiver le type ?</DialogTitle>
             <DialogDescription>
               Le type <strong>{deleteType?.libelle}</strong> sera supprimé.
               {deleteType && deleteType.nb_utilisations > 0 && (
@@ -354,14 +354,14 @@ export function EvaluationsView({
                   utilisent ce type.
                 </span>
               )}
-            </DialogDescription>
+             Conformément à la politique de conservation, les données sont archivées (retirées des listes) mais jamais effacées : elles restent disponibles en cas de contrôle.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteType(null)}>
               Annuler
             </Button>
             <Button variant="destructive" onClick={onDeleteType}>
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -463,7 +463,7 @@ function EvaluationRow({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-danger focus:text-danger">
-              <Trash2 /> Supprimer
+              <Trash2 /> Archiver
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -582,7 +582,7 @@ function TypesView({
                             onClick={() => onDelete(t)}
                             className="text-danger focus:text-danger"
                           >
-                            <Trash2 /> Supprimer
+                            <Trash2 /> Archiver
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

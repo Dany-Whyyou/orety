@@ -35,7 +35,8 @@ export async function getClasses(): Promise<ClasseItem[]> {
        utilisateurs:titulaire_utilisateur_id(nom, prenom, pseudo)`
     )
     .order("nom");
-  const { data, error } = await (scope ? base.eq("niveaux.etablissement_id", scope) : base);
+  const filtre = base.is("archive_le", null);
+  const { data, error } = await (scope ? filtre.eq("niveaux.etablissement_id", scope) : filtre);
 
   if (error) {
     console.error("getClasses:", error);

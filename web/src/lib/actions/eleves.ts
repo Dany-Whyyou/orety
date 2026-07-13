@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ROLES_ADMINISTRATIFS } from "@/lib/auth";
 import { generateParentPseudo, createParent } from "@/lib/actions/parents";
 
 const SEXES = ["m", "f"] as const;
@@ -60,7 +60,7 @@ export type EleveActionResult =
 async function requireAdmin() {
   const user = await getCurrentUser();
   if (!user) throw new Error("Non authentifié");
-  if (!["super_admin", "admin_org", "secretariat"].includes(user.role?.code ?? "")) {
+  if (!ROLES_ADMINISTRATIFS.includes(user.role?.code ?? "")) {
     throw new Error("Permission refusée");
   }
   return user;

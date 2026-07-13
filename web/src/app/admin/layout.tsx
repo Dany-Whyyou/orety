@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
 import { Sidebar, SidebarProvider } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ROLES_ADMINISTRATIFS } from "@/lib/auth";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/admin");
+  // Le dashboard est réservé au personnel administratif : un parent ou un prof
+  // authentifié ne doit pas pouvoir afficher les pages (qui lisent via service role).
+  if (!ROLES_ADMINISTRATIFS.includes(user.role?.code ?? "")) redirect("/");
 
   return (
     <SidebarProvider>

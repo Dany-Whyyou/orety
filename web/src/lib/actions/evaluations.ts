@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const typeSchema = z.object({
   etablissement_id: z.string().uuid(),
@@ -46,7 +46,7 @@ export type ActionResult = { ok: true; id?: string } | { ok: false; error: strin
 async function requireAdmin() {
   const user = await getCurrentUser();
   if (!user) throw new Error("Non authentifié");
-  if (!["super_admin", "admin_org", "prof"].includes(user.role?.code ?? "")) {
+  if (![...ROLES_DIRECTION, "prof"].includes(user.role?.code ?? "")) {
     throw new Error("Permission refusée");
   }
   return user;

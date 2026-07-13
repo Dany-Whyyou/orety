@@ -14,6 +14,24 @@ export type CurrentUser = {
   etablissement_scope_id: string | null;
 };
 
+/**
+ * Matrice de rôles unique pour le dashboard web.
+ * - direction : gère la structure scolaire (établissements, classes, profs, bulletins…)
+ * - administratifs : direction + secrétariat (inscriptions, parents, communications)
+ */
+export const ROLES_DIRECTION: readonly string[] = ["super_admin", "admin_org", "directeur_site"];
+export const ROLES_ADMINISTRATIFS: readonly string[] = [...ROLES_DIRECTION, "secretariat"];
+
+/** Lève si l'utilisateur n'est pas authentifié ou n'a pas l'un des rôles requis. */
+export async function requireRole(roles: readonly string[]): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Non authentifié");
+  if (!roles.includes(user.role?.code ?? "")) {
+    throw new Error("Permission refusée");
+  }
+  return user;
+}
+
 /** Convertit un pseudo en email technique interne pour Supabase Auth. */
 export function pseudoToEmail(pseudo: string) {
   return `${pseudo.trim().toLowerCase()}@orety.internal`;

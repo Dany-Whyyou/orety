@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 
 const CYCLES = ["prescolaire", "primaire", "college", "lycee"] as const;
 
@@ -20,7 +20,7 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 async function requireAdmin() {
   const user = await getCurrentUser();
   if (!user) throw new Error("Non authentifié");
-  if (!["super_admin", "admin_org"].includes(user.role?.code ?? "")) {
+  if (!ROLES_DIRECTION.includes(user.role?.code ?? "")) {
     throw new Error("Permission refusée");
   }
   return user;

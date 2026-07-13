@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, ROLES_DIRECTION } from "@/lib/auth";
 import { getClotureState, getProchaineAnnee, type DecisionFinAnnee } from "@/lib/queries/cloture";
 
 const decisionSchema = z.object({
@@ -22,7 +22,7 @@ export type ActionResult = { ok: true; count?: number; archive_id?: string } | {
 async function requireAdmin() {
   const user = await getCurrentUser();
   if (!user) throw new Error("Non authentifié");
-  if (!["super_admin", "admin_org", "directeur_site"].includes(user.role?.code ?? "")) {
+  if (!ROLES_DIRECTION.includes(user.role?.code ?? "")) {
     throw new Error("Permission refusée");
   }
   return user;

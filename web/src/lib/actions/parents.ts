@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUser, pseudoToEmail } from "@/lib/auth";
+import { getCurrentUser, pseudoToEmail, ROLES_ADMINISTRATIFS } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -23,7 +23,7 @@ export type ActionResult =
 async function requireAdmin() {
   const user = await getCurrentUser();
   if (!user) throw new Error("Non authentifié");
-  if (!["super_admin", "admin_org", "secretariat"].includes(user.role?.code ?? "")) {
+  if (!ROLES_ADMINISTRATIFS.includes(user.role?.code ?? "")) {
     throw new Error("Permission refusée");
   }
   return user;
